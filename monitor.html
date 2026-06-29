@@ -1035,6 +1035,10 @@ function enviarRegistroMonitor() {
 
   _monRegSent.unshift(reg);
   renderMonSentList();
+  // Salvar no banco de dados
+  saveMonRegToSupa(reg).then(function(ok) {
+    if (!ok) console.warn('Falha ao salvar no banco — registro mantido localmente.');
+  });
 
   // Post to parent window (index.html) if in iframe or same origin
   try {
@@ -1077,6 +1081,34 @@ function renderMonSentList() {
       '</div>' +
     '</div>';
   }).join('');
+}
+
+
+// Supabase — salvar registro do monitor
+const MON_SUPA_URL = 'https://wulihgevyzzhysnxzhoy.supabase.co';
+const MON_SUPA_KEY = 'sb_publishable_YTaSssCbwiudqrAoRx2YpA_CrEhc4Sb';
+
+async function saveMonRegToSupa(reg) {
+  try {
+    await fetch(MON_SUPA_URL + '/rest/v1/transporte_registros_monitor', {
+      method: 'POST',
+      headers: {
+        'apikey': MON_SUPA_KEY,
+        'Authorization': 'Bearer ' + MON_SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        id: reg.id, monitor: reg.monitor, van: reg.van,
+        data: reg.data, hora: reg.hora||null,
+        turno: reg.turno, tipo: reg.tipo,
+        tipo_label: reg.tipo_label, natureza_label: reg.natureza_label,
+        severidade: reg.severidade, alunos: reg.alunos||'',
+        descricao: reg.descricao||'', providencia: reg.providencia||''
+      })
+    });
+    return true;
+  } catch(e) { return false; }
 }
 
 </script>
