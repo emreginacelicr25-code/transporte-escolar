@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Rota do Monitor — Transporte Regina Celi</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --c1:  #1a3a5c;
+    --c2:  #2a6496;
+    --wa:  #25D366;
+    --bg:  #f0f4f8;
+    --surface: #ffffff;
+    --text: #1a2534;
+    --muted: #6b7a8d;
+    --border: #dde3ea;
+    --van-C1:  #2a6496;
+    --van-C2:  #2aaa72;
+    --van-C3:  #9b59b6;
+    --van-AD1: #d44a2a;
+    --van-AD2: #e8a020;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+         min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--c1); color: white;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 200;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  }
+  .hd-icon { width: 38px; height: 38px; background: #25D366; border-radius: 9px;
+             display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink:0; }
+  .hd-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; line-height: 1.2; }
+  .hd-sub   { font-size: 11px; opacity: 0.7; }
+  .hd-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+  /* ── VAN SELECTOR ── */
+  .van-selector {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  }
+  .van-selector::-webkit-scrollbar { display: none; }
+  .van-btn {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 600;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .van-btn.active {
+    color: white;
+    border-color: transparent;
+  }
+  .van-btn.all.active { background: var(--c1); }
+
+  /* ── TURNO + HORA FILTERS ── */
+  .filter-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--muted);
+                  text-transform: uppercase; letter-spacing: 0.07em; flex-shrink:0; }
+  .turno-btn {
+    padding: 5px 12px; border-radius: 16px; border: 1.5px solid var(--border);
+    background: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 12px;
+    font-weight: 600; cursor: pointer; color: var(--text); transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .turno-btn.active { background: var(--c1); color: white; border-color: var(--c1); }
+
+  .hora-select {
+    padding: 5px 10px; border: 1.5px solid var(--border); border-radius: 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--bg);
+    color: var(--text); outline: none; cursor: pointer;
+  }
+  .hora-select:focus { border-color: var(--c2); }
+
+  /* ── MAP ── */
+  #map { flex: 1; min-height: 340px; }
+
+  /* ── GEO PROGRESS ── */
+  #geoWrap {
+    padding: 8px 14px; background: #eaf4ff;
+    border-bottom: 1px solid #b8d9f5; display: flex; align-items: center; gap: 10px;
+  }
+  #geoWrap .bar-wrap { flex:1; height:5px; background:#cce0f5; border-radius:3px; overflow:hidden; }
+  #geoWrap .bar-fill { height:100%; width:0%; background:#2a6496; border-radius:3px; transition:width .4s; }
+  #geoText { font-size:11px; color:#1a3a5c; white-space:nowrap; }
+
+  /* ── STOP LIST (below map) ── */
+  .stop-list { background: var(--surface); }
+
+  .stop-list-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .stop-list-header h3 {
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--c1);
+  }
+  .stop-count {
+    font-size: 12px; background: var(--c1); color: white;
+    padding: 2px 9px; border-radius: 10px; font-weight: 600;
+  }
+
+  .stop-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .stop-card:hover, .stop-card:active { background: #f7f9fb; }
+  .stop-card:last-child { border-bottom: none; }
+
+  .stop-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .stop-info { flex: 1; min-width: 0; }
+  .stop-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stop-turma { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .stop-addr  { font-size: 11px; color: var(--muted); margin-top: 2px;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .stop-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .b-mob  { background: #fce7f3; color: #9d174d; }
+  .b-in   { background: #d4edda; color: #155724; }
+  .b-out  { background: #f8d7da; color: #721c24; }
+  .b-wa   { background: #dcfce7; color: #166534; }
+
+  .btn-nav {
+    background: var(--wa); color: white; border: none;
+    border-radius: 8px; padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-nav:active { opacity: 0.85; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+  /* ── LEGEND FOOTER ── */
+  .footer-legend {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .leg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── REGISTRO TABS ── */
+  .reg-section { padding: 20px; }
+  .reg-card {
+    background: var(--surface); border-radius: 12px;
+    border: 1px solid var(--border); margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden;
+  }
+  .reg-card-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f7f9fb;
+  }
+  .reg-card-title {
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 15px; color: var(--c1);
+  }
+  .reg-card-body { padding: 18px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field.full { grid-column: 1 / -1; }
+  .form-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .form-input, .form-select, .form-textarea {
+    padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; background: var(--bg); color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--c2); background: white;
+  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .checkbox-group label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; padding: 5px 10px;
+    border: 1.5px solid var(--border); border-radius: 6px;
+    cursor: pointer; background: var(--bg); transition: all 0.1s;
+    user-select: none;
+  }
+  .checkbox-group label:has(input:checked) {
+    background: var(--c1); color: white; border-color: var(--c1);
+  }
+  .checkbox-group input[type=checkbox] { display: none; }
+
+  .radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .radio-group label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; padding: 5px 10px;
+    border: 1.5px solid var(--border); border-radius: 6px;
+    cursor: pointer; background: var(--bg); transition: all 0.1s;
+    user-select: none;
+  }
+  .radio-group label:has(input:checked) {
+    background: var(--c2); color: white; border-color: var(--c2);
+  }
+  .radio-group input[type=radio] { display: none; }
+
+  .btn-submit-reg {
+    background: var(--c1); color: white; border: none;
+    padding: 12px 24px; border-radius: 8px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    font-weight: 700; transition: opacity 0.15s; width: 100%;
+    margin-top: 8px;
+  }
+  .btn-submit-reg:hover { opacity: 0.88; }
+
+  /* Log list */
+  .log-list { display: flex; flex-direction: column; gap: 10px; }
+  .log-item {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; background: var(--surface);
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .log-icon { font-size: 20px; flex-shrink: 0; }
+  .log-meta { flex: 1; }
+  .log-title { font-weight: 600; font-size: 13px; }
+  .log-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .log-date { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .sev-alta  { border-left: 4px solid #e74c3c; }
+  .sev-media { border-left: 4px solid #e8a020; }
+  .sev-baixa { border-left: 4px solid #2aaa72; }
+  .sev-info  { border-left: 4px solid #2a6496; }
+
+  /* CONTRAN email preview */
+  .email-preview {
+    background: #f8fafc; border: 1px solid #cbd5e1;
+    border-radius: 10px; padding: 16px 18px;
+    font-family: monospace; font-size: 12px;
+    white-space: pre-wrap; line-height: 1.7;
+    color: #334155; max-height: 400px; overflow-y: auto;
+  }
+  .email-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .btn-copy-email {
+    background: #2a6496; color: white; border: none;
+    padding: 9px 18px; border-radius: 8px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    font-weight: 600;
+  }
+  .btn-mailto {
+    background: #25D366; color: white; border: none;
+    padding: 9px 18px; border-radius: 8px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    font-weight: 600; text-decoration: none; display: inline-flex;
+    align-items: center; gap: 5px;
+  }
+
+  /* Monitor registro tab */
+  .mon-reg-sent {
+    border: 1px solid #86efac; border-radius: 10px;
+    padding: 10px 14px; background: #f0fdf4; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .mon-reg-sent-icon { font-size: 18px; flex-shrink: 0; }
+  .mon-reg-sent-info { flex: 1; }
+  .mon-reg-sent-title { font-size: 13px; font-weight: 600; color: #166534; }
+  .mon-reg-sent-sub { font-size: 11px; color: #4ade80; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-icon">🚐</div>
+  <div>
+    <div class="hd-title">Rota do Monitor</div>
+    <div class="hd-sub">E.M. Regina Celi — Duque de Caxias</div>
+  </div>
+  <div class="hd-right">
+    <button onclick="toggleRegTab()" style="background:#e8a020;color:white;border:none;border-radius:8px;padding:7px 13px;font-family:DM Sans,sans-serif;font-size:12px;font-weight:700;cursor:pointer">📝 Registrar</button>
+    <span id="hd-count" style="font-size:12px;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:10px;font-weight:600"></span>
+  </div>
+</header>
+
+<!-- VAN SELECTOR -->
+<div class="van-selector" id="vanSelector">
+  <button class="van-btn all active" data-van="all" onclick="selectVan(this,'all')">Todas</button>
+  <button class="van-btn" data-van="C1"  style="--vc:var(--van-C1)"  onclick="selectVan(this,'C1')">🚐 C1 — Anderson</button>
+  <button class="van-btn" data-van="C2"  style="--vc:var(--van-C2)"  onclick="selectVan(this,'C2')">🚐 C2 — Aguinaldo</button>
+  <button class="van-btn" data-van="C3"  style="--vc:var(--van-C3)"  onclick="selectVan(this,'C3')">🚐 C3 — Edilson</button>
+  <button class="van-btn" data-van="AD1" style="--vc:var(--van-AD1)" onclick="selectVan(this,'AD1')">♿ AD1 — Márcio</button>
+  <button class="van-btn" data-van="AD2" style="--vc:var(--van-AD2)" onclick="selectVan(this,'AD2')">♿ AD2 — Josivan</button>
+</div>
+
+<!-- TURNO + HORA FILTERS -->
+<div class="filter-bar">
+  <span class="filter-label">Turno:</span>
+  <button class="turno-btn active" data-turno="all" onclick="selectTurno(this,'all')">Todos</button>
+  <button class="turno-btn" data-turno="manha" onclick="selectTurno(this,'manha')">☀️ Manhã</button>
+  <button class="turno-btn" data-turno="tarde" onclick="selectTurno(this,'tarde')">🌤️ Tarde</button>
+
+  <span class="filter-label" style="margin-left:8px">Horário:</span>
+  <select class="hora-select" id="horaSelect" onchange="selectHora(this.value)">
+    <option value="all">Todos</option>
+    <option value="7-8">07–08h ↑</option>
+    <option value="8-9">08–09h ↑</option>
+    <option value="9-10">09–10h ↑</option>
+    <option value="10-11">10–11h ↑</option>
+    <option value="11-12">11–12h ↑</option>
+    <option value="12-13">12–13h ↑↓</option>
+    <option value="13-14">13–14h ↑</option>
+    <option value="14-15">14–15h ↑</option>
+    <option value="15-16">15–16h ↑↓</option>
+    <option value="16-17">16–17h ↑</option>
+    <option value="17">Saída 17h ↓</option>
+  </select>
+</div>
+
+<!-- GEO PROGRESS -->
+<div id="geoWrap">
+  <div class="bar-wrap"><div class="bar-fill" id="geoBar"></div></div>
+  <span id="geoText">Carregando localizações...</span>
+</div>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- STOP LIST -->
+<div class="stop-list">
+  <div class="stop-list-header">
+    <h3>📋 Paradas desta rota</h3>
+    <span class="stop-count" id="stopCount">0</span>
+  </div>
+  <div id="stopListBody"></div>
+</div>
+
+<!-- LEGEND -->
+
+    <!-- ══ REGISTRO MONITOR TAB ══ -->
+    <div id="mon-reg-tab" class="stop-list" style="display:none">
+
+      <div class="stop-list-header">
+        <h3>📝 Registrar Ocorrência</h3>
+      </div>
+
+      <div style="padding:14px">
+
+        <!-- Sent log (summary only) -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">📤 Registros Enviados nesta Sessão</div>
+          <div id="monSentList">
+            <div style="font-size:13px;color:var(--muted);text-align:center;padding:12px">Nenhum registro enviado ainda.</div>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div style="background:white;border:1px solid var(--border);border-radius:12px;padding:16px">
+          <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--c1);margin-bottom:14px">Novo Registro</div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+
+            <div>
+              <div class="form-label">Meu nome / Van *</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:5px">
+                <input type="text" id="mr_monitor" class="form-input" placeholder="Seu nome">
+                <select id="mr_van" class="form-select">
+                  <option value="">-- Van --</option>
+                  <option>C1</option><option>C2</option><option>C3</option>
+                  <option>AD1 ♿</option><option>AD2 ♿</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label">Data e Horário</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:5px">
+                <input type="date" id="mr_data" class="form-input">
+                <input type="time" id="mr_hora" class="form-input">
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label">Turno</div>
+              <div class="radio-group" style="margin-top:5px">
+                <label><input type="radio" name="mr_turno" value="Manhã (7h–12h)"> ☀️ Manhã</label>
+                <label><input type="radio" name="mr_turno" value="Tarde (13h–18h)"> 🌤️ Tarde</label>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label">Tipo de Ocorrência *</div>
+              <select id="mr_tipo" class="form-select" style="margin-top:5px">
+                <option value="">-- Selecione --</option>
+                <optgroup label="Transporte">
+                  <option value="atraso_rota">Atraso na rota</option>
+                  <option value="van_problema">Problema mecânico / van</option>
+                  <option value="area_risco">Área de risco na rota</option>
+                  <option value="aluno_nao_encontrado">Aluno não encontrado / não estava</option>
+                  <option value="resp_ausente">Responsável ausente na entrega</option>
+                </optgroup>
+                <optgroup label="Aluno">
+                  <option value="crise_comportamental">Crise comportamental no transporte</option>
+                  <option value="crise_convulsiva">Crise convulsiva</option>
+                  <option value="machucado">Aluno machucado / mal-estar</option>
+                  <option value="comportamento_inapropriado">Comportamento inapropriado</option>
+                </optgroup>
+                <optgroup label="Outros">
+                  <option value="ausencia_monitor">Ausência de outro monitor</option>
+                  <option value="comunicacao_familia">Comunicação com família</option>
+                  <option value="outro">Outro</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div>
+              <div class="form-label">Natureza</div>
+              <div class="radio-group" style="margin-top:5px">
+                <label><input type="radio" name="mr_nat" value="informativo"> 🔵 Informativo</label>
+                <label><input type="radio" name="mr_nat" value="atencao"> 🟡 Atenção</label>
+                <label><input type="radio" name="mr_nat" value="critico" checked=""> 🔴 Crítico</label>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label">Aluno(s) envolvido(s)</div>
+              <input type="text" id="mr_alunos" class="form-input" style="margin-top:5px" placeholder="Nome(s) do(s) aluno(s)">
+            </div>
+
+            <div>
+              <div class="form-label">Descrição do que aconteceu *</div>
+              <textarea id="mr_desc" class="form-textarea" style="margin-top:5px" placeholder="Descreva com detalhes o que ocorreu..."></textarea>
+            </div>
+
+            <div>
+              <div class="form-label">Providência tomada imediatamente</div>
+              <textarea id="mr_prov" class="form-textarea" style="margin-top:5px;min-height:60px" placeholder="O que você fez no momento..."></textarea>
+            </div>
+
+            <button onclick="enviarRegistroMonitor()" class="btn-submit-reg">
+              📤 Enviar Registro para a Escola
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+<div class="footer-legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#25D366;border:2px solid white;box-shadow:0 0 0 2px #25D366"></div>Localização WhatsApp</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#2a6496"></div>Geocodificado</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#aaa"></div>Estimado por bairro</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#1a3a5c;border-radius:4px"></div>Escola</div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+// __MONITOR_VANS__
+const VANS = {
+  C1:  { name:'Van C1',    color:'#2a6496', driver:'Anderson',  mon1:'Vinicius',  mon2:'Cláudia'  },
+  C2:  { name:'Van C2',    color:'#2aaa72', driver:'Aguinaldo', mon1:'Verônica',  mon2:'Sulamita' },
+  C3:  { name:'Van C3',    color:'#9b59b6', driver:'Edilson',   mon1:'Estephani', mon2:'Marcos'   },
+  AD1: { name:'Van AD1 ♿', color:'#d44a2a', driver:'Márcio',    mon1:'Lavinia',   mon2:'Adrielle' },
+  AD2: { name:'Van AD2 ♿', color:'#e8a020', driver:'Josivan',   mon1:'Marcia',    mon2:'Letícia'  },
+};
+// __END_MONITOR_VANS__
+
+// __STUDENTS_DATA__
+let students = [
+  // VAN C1 (was Daniel's route)
+  {van:'C1',name:'Rafael Andrade dos Santos',turma:'CE4',address:'R. Nunes Teixeira, 386 – Pilar',cid:'',times:['7-8','9'], dir:'ENTOU/SAI'},
+  {van:'C1',name:'Maiara Hir da Silva',turma:'CE3',address:'Rua Carlinda Marques, 86 – Pilar',cid:'G40.4',times:['7-8','10'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Geovana Domingos Costa',turma:'CE3',address:'Rua Fortaleza 47, Campos Elíseos',cid:'',times:['7-8','10'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Miguel de Souza Nunes da Silva',turma:'501',address:'Rua Astrida 65, Parque São João',cid:'',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Lucas Oliveira Crispim',turma:'501',address:'Rua Bitivia, Marilândia',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'João Pedro Oliveira Crispim',turma:'201',address:'Rua Bitivia, Marilândia',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Isaac Freire Dias',turma:'501',address:'Rua Santana 09A, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Misael Oliveira Francisco',turma:'301',address:'Rua Nanci, Jardim Primavera',cid:'F84.0',times:['7-8','15-16'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Hiago Cavalcante Gomes',turma:'CE3',address:'Rua Manancial 18, Jardim Primavera',cid:'F71/F84',times:['7-8','10'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'João Cláudio Neves Gil Manhães',turma:'41',address:'Rua Floriano Peixoto 09, Saracuruna',cid:'F84.0',times:['8-9','11'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Sophia da Silva Vicente Martins',turma:'AEE3',address:'Av. Borges Carneiro, Jardim Primavera',cid:'G40',times:['8-9','10'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Arthur Willians Barbosa da Silva',turma:'CE4',address:'Rua Marcílio Rena Vidal, Campos Elíseos',cid:'F84.0',times:['9-10','11'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Anna Clara de Souza Franco',turma:'AEE1',address:'Rua Desembargador Bandeira Stampa, Jardim Primavera',cid:'F84.0',times:['10-11','13'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Samuel da Conceição Gomes',turma:'402',address:'Rua Venancio Pereira Veloso, Jardim Primavera',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Antônio Carlos Cardoso Florentino',turma:'402',address:'Alameda Duque de Caxias, Jardim Primavera',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Antonella Ponce de Leão Constant',turma:'42',address:'Av. João Caetano 32, Parque Independência',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Lorenzo Oliveira Torres',turma:'502',address:'Rua Piratininga, Campos Elíseos',cid:'',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Ana Beatriz Oacks Laurindo',turma:'CE6',address:'Rua Manoel Duarte, Jardim Primavera',cid:'',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'João Victor Quirino Maria',turma:'CE7',address:'Alameda 2 de Novembro, Saracuruna',cid:'F84+F71',times:['12-13','14'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Thomas dos Santos Portela',turma:'CE1',address:'Rua Sá Carvalho 222, Vila Maria Helena',cid:'F84.0',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Gleiva Duarte da Silva',turma:'CE6',address:'Alameda Pedro Américo, Jardim Primavera',cid:'F84.0',times:['14-15','17'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Michel Rosa da Silva Lima',turma:'CE5',address:'Estrada do Camboatá, Jardim Primavera',cid:'F72',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'Helena Mendes de Brito',turma:'42',address:'Travessa São Mateus 180, Jardim Primavera',cid:'F84.0',times:['17'],dir:'SAI'},
+  {van:'C1',name:'João Pedro Bezerra de Miranda',turma:'302',address:'Estrada Camboatá 506, Jardim Primavera',cid:'F84.0',times:['17'],dir:'SAI'},
+  {van:'C1',name:'Mateus Cavalcante do Nascimento',turma:'42',address:'Alameda E, Jardim Primavera',cid:'Q90',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'C1',name:'José Octávio Pacheco da Silva',turma:'42',address:'Rua Onofre Silva 400, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+
+  // VAN C2 (Aguinaldo)
+  {van:'C2',name:'Isaac Santos de Santana',turma:'301',address:'Avenida Branca Dias 470, Cangulo',cid:'F84.0/F71',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Matheus Miranda da Costa Silva',turma:'CE3',address:'Rua Zulmira Braga Coutinho, Jardim Primavera',cid:'G40.3/F72',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Renato Luiz de Souza Miranda Junior',turma:'201',address:'Av. Marques de Baependi 17, Parque Chuno',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Samuel de Jesus',turma:'202',address:'Saracuruna, Duque de Caxias',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Otávio Barbosa Dias Ferreira',turma:'301',address:'Av. Marques de Baependi 12, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Isabela de Oliveira da Silva',turma:'41',address:'Rua Padre Marinho, Saracuruna',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Lara Vitória Lopes da Conceição Pereira',turma:'51',address:'Rua Olinda 2, Jardim Rosário',cid:'Q90.9',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Mariah Souza Soares',turma:'41',address:'Rua Paramirim, Parque Chuno',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Arthur Carollo dos Santos',turma:'301',address:'Doutor Olegário Maciel, Parque João Pessoa',cid:'F84',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Kalel Anderson de Carvalho Rosa',turma:'51',address:'Rua Jangadeiro, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Angelo Miguel Silva Lopes',turma:'401',address:'Rua José Maia 517, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Hugo Divino Silva',turma:'51',address:'Rua Visconde de Caravelas, Saracuruna',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Matheus Robles Coutinho',turma:'CE3',address:'Rua Paramirim 18, Parque Chuno',cid:'A15',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Davi Moreira Lima dos Santos',turma:'102',address:'Av. Santa Cruz 770, Saracuruna',cid:'F84.0',times:['9-10','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Heitor Lucca de Oliveira Tompson',turma:'302',address:'Rua Canal do Farias 472, Parque Independência',cid:'F84.0',times:['9-10','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Aline Pascoal Odilon',turma:'CE6',address:'Rua Visconde de Barbacena, Jardim Primavera',cid:'F72.1',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Ana Vitória Guimarães Lacerda',turma:'102',address:'Rua da Agricultura, Saracuruna',cid:'G40/F84.9',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Oliver Barbosa Coelho',turma:'52',address:'Rua Leôncio Correa 29, Saracuruna',cid:'F84',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Arthur Gomes de Andrade',turma:'52',address:'Rua Marapani 11, Jardim Primavera',cid:'F84.0',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Anna Clara de Souza Franco',turma:'203',address:'Rua Desembargador Bandeira Stampa, Jardim Primavera',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Joaquim Farias da Silva',turma:'302',address:'Rua E Nº2, Jardim Santa Rita',cid:'6A02.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Menzell Rosário da Silva',turma:'CE6',address:'Duque de Caxias',cid:'H90.3',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Arthur Henrique de Freitas Carvalho',turma:'101',address:'Rua Projetada I, Saracuruna',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Jackson Pessoa Fabri',turma:'CE6',address:'Rua Gomes Carneiro, Urussay',cid:'F72',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Rodrigo da Silva Araújo',turma:'CE6',address:'Rua Descartes, Saracuruna',cid:'A15',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'C2',name:'Jhenifer Gonçalves Gomes',turma:'CE5',address:'Av. dos Palmares, Jardim Primavera',cid:'G80.8',times:['12-13','15'],dir:'ENTOU/SAI'},
+
+  // VAN C3 (Edilson)
+  {van:'C3',name:'Luiz Arthur da Silva Rosa',turma:'202',address:'Alameda Inspetor Castro, Saracuruna',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Harry Sandro dos Santos Saldanha',turma:'301',address:'Estrada das Merindibas 377, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Vinícios Oliveira Fernandes',turma:'202',address:'Alameda Guanabara, Campos Elíseos',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Miguel Vitório Estrela Lima',turma:'202',address:'Rua Visconde de Kairu, Campos Elíseos',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'João Gabriel Barbosa Marques',turma:'101',address:'Rua Sá Carvalho 40, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Isabela Duarte',turma:'41',address:'Campos Elíseos, Duque de Caxias',cid:'',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Nathan dos Santos Faustino',turma:'CE2',address:'Rua da Esperança 4, Parque Independência',cid:'F84',times:['7-8','9'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Benjamin Lucas Alves Urbano',turma:'101',address:'Campos Elíseos, Duque de Caxias',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Carlos Dias de Souza',turma:'CE3',address:'Alameda Colheiros da Graça, Jardim Primavera',cid:'Q90',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Maria Julieta dos Santos',turma:'CE3',address:'Av. Primavera, Jardim Primavera',cid:'Def.Int.',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Maria Alice Gonçalves Carneiro',turma:'101',address:'Rua dos Pinheiros, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Arthur Ferreira Rodrigues',turma:'CE4',address:'Rua Diogo Goulart, Jardim Primavera',cid:'F84',times:['10-11','12'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Sophia da Silva Vicente Martins',turma:'402',address:'Av. Borges Carneiro, Jardim Primavera',cid:'G40',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Nathaly Vitória Soares Cruz Bezerra',turma:'302',address:'Rua Barão de Cotegipe 24, Jardim Primavera',cid:'Q96',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Benjamin Bitemcourt Madeira',turma:'102',address:'Rua Martiniano de Alencar, Vila Actura',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Miguel da Silva Carvalho',turma:'42',address:'Rua dos Pinheiros, Jardim Primavera',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Helena Mendes de Brito',turma:'42',address:'Travessa São Mateus 180, Jardim Primavera',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Oliver Mikhael Corrêa de Santana',turma:'103',address:'Rua Cosme Filho 136, Parque Independência',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Henrique Martins Barros',turma:'102',address:'Rua Salvador de Mendonça, Saracuruna',cid:'F84.0',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Geovana Costa Monteiro',turma:'CE6',address:'Rua Bretania 48, Parque Marilândia',cid:'F84.0/F71',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Natália Dias da Silva',turma:'CE3',address:'Av. São Paulo 75, Campos Elíseos',cid:'Q90.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Lorenzo Pinho de Melo',turma:'402',address:'Rua Nanci, Jardim Primavera',cid:'F84.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Geovane dos Santos Vieira',turma:'CE6',address:'Rua Borges Carneiro, Jardim Primavera',cid:'',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Felipe Gonçalves Rodrigues',turma:'CE6',address:'Rua Bitiva 43, Campos Elíseos',cid:'F71/G40',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Mateus Ribeiro de Lima',turma:'CE6',address:'Av. Marques de Paranaguá, Campos Elíseos',cid:'',times:['12-13','14'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Miguel Inocêncio dos Santos',turma:'CE7',address:'Rua das Acácias, Jardim Primavera',cid:'F84',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Kevin Cunha de Lima',turma:'CE5',address:'Travessa Maranhão 23, Campos Elíseos',cid:'Q87.0/F72',times:['15-16','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Arthur Ferreira Corrêa',turma:'CE1',address:'Rua Monroe 14, Vila Actura',cid:'F84/F71/Q90',times:['14-15','17'],dir:'ENTOU/SAI'},
+  {van:'C3',name:'Joaquim Leandro Marques dos Santos',turma:'301',address:'Alameda Luiz Alves Castro 224, Jardim Primavera',cid:'F84.0',times:['7-8','10'],dir:'ENTOU/SAI'},
+
+  // VAN AD1 (Márcio — adaptada)
+  {van:'AD1',name:'Ana Laura Rosa Leal',turma:'401',address:'Rua Marechal Hermes, Saracuruna',cid:'G82.00 — cadeirante',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Christian Gonçalves dos Reis',turma:'401',address:'Rua Santa Fé, Jardim Primavera',cid:'F84.0/F70',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Miguel Adrian Guerra Batista',turma:'501',address:'Rua Santa Fé, Bom Retiro',cid:'F84.9',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Gian Carlos Barros Vieira',turma:'CE3',address:'Rua Marques de Paranaguá, Campos Elíseos',cid:'',times:['9-10','12'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Natália Dias da Silva',turma:'CE3',address:'Av. São Paulo 75, Campos Elíseos',cid:'Q90.0',times:['9-10','12'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Isaque',turma:'AEE4',address:'Duque de Caxias',cid:'',times:['10-11','12'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Adailton Barbosa da Costa',turma:'CE6',address:'Av. Presidente Kennedy 116, Jd. Ana Clara',cid:'F72',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Kauãn da Silva dos Santos',turma:'CE5',address:'Rua Projetada 280, Jardim Primavera',cid:'G80.9/Q03.9 — cadeirante',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Manuela Santana da Cruz',turma:'CE7',address:'Av. Tupinambá, Campos Elíseos',cid:'F89.0',times:['13-14','15'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Lyzandra Medella dos Santos',turma:'CE6',address:'Estrada Cel Silva Barros 38, Campos Elíseos',cid:'G80 — cadeirante',times:['13-14','16'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Maria Eduarda Santos Rocha',turma:'CE5',address:'Av. Nelson Mauro, Saracuruna',cid:'G80.8 — cadeirante',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Emanuel do Nascimento Guitz',turma:'402',address:'Av. Nelson Mauro 309, casa 4',cid:'Cadeirante',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'AD1',name:'Miguel Inocêncio dos Santos',turma:'CE7',address:'Rua das Acácias, Jardim Primavera',cid:'G80',times:['15-16','16'],dir:'ENTOU/SAI'},
+
+  // VAN AD2 (Josivan — adaptada)
+  {van:'AD2',name:'Lara Valentina da Silva Nascimento',turma:'CE2',address:'Rua Arlete 14, Jardim Primavera',cid:'Q02/F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Wallace Gomes Gonçalves dos Santos',turma:'CE6',address:'Rua Barão de Japurá 520, Jardim Primavera',cid:'Cadeirante',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Miguel de Souza Nunes da Silva',turma:'501',address:'Rua Astrida 65, Parque São João',cid:'',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Mikaella de Souza Machado',turma:'CE2',address:'Rua 16 cs 4, Jardim Primavera',cid:'Cadeirante/G40.0/Q02/G80.9',times:['8-9','10'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Bruno Rafael Nunes Paz',turma:'CE5',address:'Rua B, Campos Elíseos',cid:'Cadeirante/G80.0',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Pedro Lucas Fernandes',turma:'CE1',address:'Rua Belarmino Gondim, Jardim Primavera',cid:'Cadeirante/G40',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Alex Carlos Corrêa',turma:'CE3',address:'Rua Dom Bosco 413, Pilar',cid:'',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Maria Eduarda dos Santos de Souza',turma:'CE2',address:'Rua Sagres 851, Jardim Primavera',cid:'Cadeirante/G40.0',times:['9-10','11'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Benjamin Meira Valinha',turma:'501',address:'Rua Visconde de Itaborai 4, Vila Maria Helena',cid:'6A02.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Paulo César Rodrigues de Souza Moço',turma:'CE3',address:'Rua Colatina 36, Jardim Primavera',cid:'F72',times:['9-10','12'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Joaquim Farias da Silva',turma:'AEE2',address:'Rua E Nº2, Jardim Santa Rita',cid:'6A02.0',times:['8-9','10'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Tito Gouveia Monteiro',turma:'402',address:'Estrada São Mateus 204, Jardim Primavera',cid:'F84.0+F70 mob.reduzida',times:['9-10','17'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Sophia Ketlyn da Silva Souza',turma:'302',address:'Rua Mateus 645, Jardim Primavera',cid:'Q90.0',times:['12-13','17'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Joshua Alexandre Icalina Mateus',turma:'CE1',address:'Rua São Mateus 204, Jardim Primavera',cid:'Q20.5/Q22.0',times:['12-13','15'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'José Octávio Pacheco da Silva',turma:'41',address:'Rua Onofre Silva 400, Jardim Primavera',cid:'F84.0',times:['7-8','12'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Kalel Anderson de Carvalho Rosa',turma:'AEE1',address:'Rua Jangadeiro, Jardim Primavera',cid:'F84.0',times:['14-15','16'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'José Leandro Marques dos Santos',turma:'AEE2',address:'Alameda Luiz Alves Castro 224, Jardim Primavera',cid:'F84',times:['15-16','17'],dir:'ENTOU/SAI'},
+  {van:'AD2',name:'Michel Rosa da Silva Lima',turma:'CE5',address:'Estrada do Camboatá, Jardim Primavera',cid:'F72',times:['13-14','16'],dir:'ENTOU/SAI'},
+];
+// __END_STUDENTS__
+
+// ============================================================
+// GEOCODING — Nominatim with fallback
+// ============================================================
+const NEIGHBORHOOD_FALLBACK = {
+  'Jardim Primavera':    [-22.686,-43.270], 'Campos Elíseos':      [-22.667,-43.254],
+  'Saracuruna':          [-22.676,-43.239], 'Pilar':               [-22.710,-43.278],
+  'Parque Marilandia':   [-22.693,-43.267], 'Marilândia':          [-22.693,-43.267],
+  'Parque Independência':[-22.673,-43.263], 'Parque Chuno':        [-22.690,-43.280],
+  'Vila Maria Helena':   [-22.680,-43.259], 'Bom Retiro':          [-22.699,-43.273],
+  'Jardim Rosário':      [-22.688,-43.275], 'Jardim Santa Rita':   [-22.683,-43.265],
+  'Cangulo':             [-22.678,-43.244], 'Vila Actura':         [-22.682,-43.261],
+  'Parque João Pessoa':  [-22.691,-43.268], 'Parque São João':     [-22.671,-43.250],
+  'Urussaí':             [-22.672,-43.257], 'Ana Clara':           [-22.694,-43.258],
+  'default':             [-22.686,-43.268]
+};
+const geocodeCache = {};
+let nominatimQueue = [], nominatimRunning = false;
+let geoProgress = 0, geoTotal = 0;
+
+function getFallbackCoords(addr) {
+  if (!addr) return [...NEIGHBORHOOD_FALLBACK.default];
+  for (const [n,c] of Object.entries(NEIGHBORHOOD_FALLBACK)) {
+    if (addr.toLowerCase().includes(n.toLowerCase()))
+      return [c[0]+(Math.random()-.5)*.003, c[1]+(Math.random()-.5)*.003];
+  }
+  return [NEIGHBORHOOD_FALLBACK.default[0]+(Math.random()-.5)*.006,
+          NEIGHBORHOOD_FALLBACK.default[1]+(Math.random()-.5)*.006];
+}
+
+function getStudentCoords(s) {
+  if (s.wa_lat && s.wa_lng) return [parseFloat(s.wa_lat), parseFloat(s.wa_lng)];
+  const key = s.address ? s.address.trim().toLowerCase() : null;
+  return (key && geocodeCache[key]) ? geocodeCache[key] : getFallbackCoords(s.address);
+}
+
+async function geocodeAddress(address) {
+  if (!address) return getFallbackCoords(address);
+  const key = address.trim().toLowerCase();
+  if (geocodeCache[key]) return geocodeCache[key];
+  return new Promise(resolve => {
+    nominatimQueue.push({address, key, resolve});
+    if (!nominatimRunning) processQueue();
+  });
+}
+
+async function processQueue() {
+  nominatimRunning = true;
+  while (nominatimQueue.length > 0) {
+    const {address, key, resolve} = nominatimQueue.shift();
+    try {
+      let q = address.replace(/Tel\.?.*/gi,'').replace(/CEP:.*/gi,'').trim();
+      if (!q.toLowerCase().includes('duque de caxias')) q += ', Duque de Caxias, RJ, Brasil';
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=' + encodeURIComponent(q);
+      const res = await fetch(url, {headers:{'Accept-Language':'pt-BR','User-Agent':'MonitorReginaCeli/1.0'}});
+      const data = await res.json();
+      const coords = data && data.length > 0
+        ? [parseFloat(data[0].lat), parseFloat(data[0].lon)]
+        : getFallbackCoords(address);
+      geocodeCache[key] = coords;
+      resolve(coords);
+    } catch(e) {
+      const fb = getFallbackCoords(address);
+      geocodeCache[key] = fb;
+      resolve(fb);
+    }
+    await new Promise(r => setTimeout(r, 1100));
+  }
+  nominatimRunning = false;
+}
+
+function updateGeoBar(done) {
+  const wrap = document.getElementById('geoWrap');
+  const bar  = document.getElementById('geoBar');
+  const txt  = document.getElementById('geoText');
+  if (!wrap) return;
+  if (done) { wrap.style.display = 'none'; return; }
+  const pct = geoTotal > 0 ? Math.round(geoProgress / geoTotal * 100) : 0;
+  bar.style.width = pct + '%';
+  txt.textContent = 'Geocodificando: ' + geoProgress + '/' + geoTotal + ' (' + pct + '%)';
+}
+
+async function geocodeAll() {
+  const uniq = [...new Set(students.map(s => s.address).filter(Boolean))];
+  geoTotal = uniq.length; geoProgress = 0; updateGeoBar(false);
+  for (let i = 0; i < uniq.length; i += 5) {
+    await Promise.all(uniq.slice(i, i+5).map(a => geocodeAddress(a)));
+    geoProgress = Math.min(i+5, uniq.length);
+    updateGeoBar(false);
+    refresh();
+  }
+  updateGeoBar(true);
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let currentVan   = 'all';
+let currentTurno = 'all';
+let currentHora  = 'all';
+let map = null;
+let markers = [], polylines = [];
+
+const SCHOOL = [-22.686, -43.270];
+
+function matchesTime(s, hora) {
+  if (hora === 'all') return true;
+  return s.times && s.times.some(t => t === hora || t === hora.split('-')[0]);
+}
+
+function matchesTurno(s, turno) {
+  if (turno === 'all') return true;
+  const manha = s.times && s.times.some(t => ['7-8','8-9','9-10','10-11','11-12','11'].includes(t));
+  const tarde = s.times && s.times.some(t => ['12-13','13-14','14-15','15-16','16-17','17'].includes(t));
+  if (turno === 'manha') return manha;
+  if (turno === 'tarde') return tarde;
+  return true;
+}
+
+function getFiltered() {
+  return students.filter(s => {
+    const vanOk   = currentVan   === 'all' || s.van === currentVan;
+    const turnoOk = matchesTurno(s, currentTurno);
+    const horaOk  = matchesTime(s, currentHora);
+    return vanOk && turnoOk && horaOk;
+  });
+}
+
+// ============================================================
+// MAP
+// ============================================================
+function initMap() {
+  const L = window.L;
+  if (!L) return;
+  map = L.map('map', {zoomControl: true}).setView(SCHOOL, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // School marker
+  const schoolIcon = L.divIcon({
+    html: '<div style="background:#1a3a5c;color:white;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏫</div>',
+    className: '', iconSize:[34,34], iconAnchor:[17,17]
+  });
+  L.marker(SCHOOL, {icon: schoolIcon})
+    .addTo(map)
+    .bindPopup('<strong>E.M. Regina Celi da Silva Cerdeira</strong><br>Av. Jornalista Emílio de Menezes<br>Jardim Primavera, Duque de Caxias');
+
+  refresh();
+  geocodeAll();
+}
+
+function refresh() {
+  renderMap();
+  renderStopList();
+  updateHeaderCount();
+}
+
+function renderMap() {
+  const L = window.L;
+  if (!map || !L) return;
+  markers.forEach(m => m.remove());
+  polylines.forEach(p => p.remove());
+  markers = []; polylines = [];
+
+  const filtered = getFiltered();
+  const byVan = {};
+  filtered.forEach(s => { if (!byVan[s.van]) byVan[s.van] = []; byVan[s.van].push(s); });
+
+  Object.entries(byVan).forEach(([vanId, sts]) => {
+    const color = VANS[vanId].color;
+    const coords = sts.map(s => getStudentCoords(s));
+
+    // Route line
+    const pl = L.polyline([SCHOOL, ...coords, SCHOOL], {
+      color, weight: 3, opacity: 0.55, dashArray: '7,5'
+    }).addTo(map);
+    polylines.push(pl);
+
+    sts.forEach((s, i) => {
+      const coord = coords[i];
+      const isWA  = !!(s.wa_lat && s.wa_lng);
+      const key   = s.address ? s.address.trim().toLowerCase() : null;
+      const isGeo = !isWA && key && geocodeCache[key] !== undefined;
+      const sz    = isWA ? 28 : isGeo ? 22 : 18;
+      const border= isWA ? '3px solid #25D366' : '2px solid white';
+      const opacity= (!isWA && !isGeo) ? '0.65' : '1';
+      const pin   = isWA ? '<span style=\"position:absolute;top:-7px;right:-7px;font-size:12px;background:white;border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)\">📍</span>' : '';
+
+      const html = `<div style="background:${color};color:white;width:${sz}px;height:${sz}px;border-radius:50%;border:${border};box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;opacity:${opacity};position:relative">${vanId}${pin}</div>`;
+      const icon = L.divIcon({html, className:'', iconSize:[sz,sz], iconAnchor:[sz/2,sz/2]});
+      const hasMob = s.cid && s.cid.toLowerCase().includes('cadeirante');
+      const src = isWA ? '📍 WhatsApp (exato)' : isGeo ? '🔵 Geocodificado' : '⚪ Estimado';
+      const timesStr = (s.times||[]).join(' · ');
+      const mapsUrl = (s.wa_lat && s.wa_lng)
+        ? 'https://maps.google.com/?q=' + s.wa_lat + ',' + s.wa_lng
+        : 'https://maps.google.com/?q=' + encodeURIComponent((s.address||'') + ', Duque de Caxias RJ');
+
+      const m = L.marker(coord, {icon}).addTo(map);
+      m.bindPopup(`
+        <div style="font-family:sans-serif;min-width:200px;max-width:250px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">${s.name} ${hasMob?'♿':''}</div>
+          <div style="font-size:12px;color:#555;margin-bottom:3px">Turma <strong>${s.turma}</strong></div>
+          <div style="font-size:11px;color:#444;margin-bottom:4px">${s.address||'sem endereço'}</div>
+          <div style="font-size:10px;background:${isWA?'#dcfce7':isGeo?'#dbeafe':'#f3f4f6'};color:${isWA?'#166534':isGeo?'#1e40af':'#6b7280'};padding:2px 7px;border-radius:4px;margin-bottom:6px">${src}</div>
+          <div style="font-size:11px;color:#666;margin-bottom:8px">Horários: ${timesStr}</div>
+          <a href="${mapsUrl}" target="_blank" style="display:block;background:#25D366;color:white;text-align:center;padding:8px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700">🗺️ Como chegar</a>
+        </div>
+      `, {maxWidth: 260});
+      markers.push(m);
+    });
+  });
+}
+
+// ============================================================
+// STOP LIST
+// ============================================================
+function renderStopList() {
+  const filtered = getFiltered();
+  const body = document.getElementById('stopListBody');
+  const countEl = document.getElementById('stopCount');
+  countEl.textContent = filtered.length;
+
+  if (filtered.length === 0) {
+    body.innerHTML = '<div class="empty">Nenhuma parada para os filtros selecionados.</div>';
+    return;
+  }
+
+  // Group by van, then by time for ordering
+  const byVan = {};
+  filtered.forEach(s => { if (!byVan[s.van]) byVan[s.van] = []; byVan[s.van].push(s); });
+
+  let html = '';
+  let stopNum = 1;
+
+  Object.entries(byVan).forEach(([vanId, sts]) => {
+    const v = VANS[vanId];
+    if (currentVan === 'all') {
+      html += `<div style="padding:6px 14px 4px;background:#f7f9fb;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:${v.color};text-transform:uppercase;letter-spacing:0.07em">${v.name} — Motorista ${v.driver}</div>`;
+    }
+
+    sts.forEach(s => {
+      const hasMob = s.cid && s.cid.toLowerCase().includes('cadeirante');
+      const isWA   = !!(s.wa_lat && s.wa_lng);
+      const timesIn  = (s.times||[]).filter(t => t.includes('-'));
+      const timesOut = (s.times||[]).filter(t => !t.includes('-'));
+      const mapsUrl  = (s.wa_lat && s.wa_lng)
+        ? 'https://maps.google.com/?q=' + s.wa_lat + ',' + s.wa_lng
+        : 'https://maps.google.com/?q=' + encodeURIComponent((s.address||'') + ', Duque de Caxias RJ');
+
+      html += `
+        <div class="stop-card" onclick="focusStudent('${s.name.replace(/'/g,"\\'")}')">
+          <div class="stop-num" style="background:${v.color}">${stopNum++}</div>
+          <div class="stop-info">
+            <div class="stop-name">${s.name}</div>
+            <div class="stop-turma">Turma ${s.turma}${hasMob ? ' · ♿ Cadeirante/mob.reduzida' : ''}</div>
+            <div class="stop-addr">${s.address || 'Endereço não informado'}</div>
+            <div class="stop-badges">
+              ${timesIn.map(t => `<span class="badge b-in">↑ ${t}h</span>`).join('')}
+              ${timesOut.map(t => `<span class="badge b-out">↓ ${t}h</span>`).join('')}
+              ${isWA ? '<span class="badge b-wa">📍 WhatsApp</span>' : ''}
+              ${hasMob ? '<span class="badge b-mob">♿</span>' : ''}
+            </div>
+          </div>
+          <a href="${mapsUrl}" target="_blank" onclick="event.stopPropagation()" class="btn-nav">
+            🗺️<span>Ir</span>
+          </a>
+        </div>`;
+    });
+  });
+
+  body.innerHTML = html;
+}
+
+function focusStudent(name) {
+  const s = students.find(st => st.name === name);
+  if (!s || !map) return;
+  const coords = getStudentCoords(s);
+  map.setView(coords, 17, {animate: true});
+  // Open corresponding marker popup
+  const marker = markers.find(m => {
+    const ll = m.getLatLng();
+    return Math.abs(ll.lat - coords[0]) < 0.0001 && Math.abs(ll.lng - coords[1]) < 0.0001;
+  });
+  if (marker) marker.openPopup();
+}
+
+function updateHeaderCount() {
+  const n = getFiltered().length;
+  const el = document.getElementById('hd-count');
+  if (el) el.textContent = n + ' aluno' + (n !== 1 ? 's' : '');
+}
+
+// ============================================================
+// FILTER CONTROLS
+// ============================================================
+function selectVan(el, van) {
+  currentVan = van;
+  document.querySelectorAll('.van-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '';
+    b.style.color = '';
+  });
+  el.classList.add('active');
+  if (van !== 'all') {
+    el.style.background = VANS[van].color;
+    el.style.color = 'white';
+  }
+  refresh();
+}
+
+function selectTurno(el, turno) {
+  currentTurno = turno;
+  document.querySelectorAll('.turno-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  refresh();
+}
+
+function selectHora(val) {
+  currentHora = val;
+  refresh();
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+function loadLeaflet() {
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  script.onload = initMap;
+  document.head.appendChild(script);
+}
+
+let _done = false;
+function boot() {
+  if (_done) return; _done = true;
+  loadLeaflet();
+  renderStopList();
+  updateHeaderCount();
+}
+document.addEventListener('DOMContentLoaded', boot);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(boot, 50);
+}
+
+// ── MONITOR REGISTRO ─────────────────────────────────────────
+var _monRegCounter = 1;
+var _monRegSent = [];
+
+function toggleRegTab() {
+  var tab = document.getElementById('mon-reg-tab');
+  var map = document.getElementById('map');
+  var stopList = document.querySelector('.stop-list');
+  var footer = document.querySelector('.footer-legend');
+  if (!tab) return;
+  var showing = tab.style.display !== 'none';
+  tab.style.display = showing ? 'none' : 'block';
+  if (map) map.style.display = showing ? 'block' : 'none';
+  if (stopList) stopList.style.display = showing ? 'block' : 'none';
+  if (footer) footer.style.display = showing ? 'flex' : 'none';
+  // Set defaults
+  if (!showing) {
+    var today = new Date().toISOString().slice(0,10);
+    var now = new Date().toTimeString().slice(0,5);
+    var dEl = document.getElementById('mr_data');
+    var hEl = document.getElementById('mr_hora');
+    if (dEl && !dEl.value) dEl.value = today;
+    if (hEl && !hEl.value) hEl.value = now;
+  }
+}
+
+function enviarRegistroMonitor() {
+  var monitor = document.getElementById('mr_monitor').value.trim();
+  var van     = document.getElementById('mr_van').value;
+  var data    = document.getElementById('mr_data').value;
+  var hora    = document.getElementById('mr_hora').value;
+  var turno   = document.querySelector('input[name="mr_turno"]:checked');
+  var tipo_el = document.getElementById('mr_tipo');
+  var nat_el  = document.querySelector('input[name="mr_nat"]:checked');
+  var alunos  = document.getElementById('mr_alunos').value.trim();
+  var desc    = document.getElementById('mr_desc').value.trim();
+  var prov    = document.getElementById('mr_prov').value.trim();
+
+  if (!monitor || !van || !data || !desc || !tipo_el.value) {
+    alert('Preencha: nome, van, data, tipo de ocorrência e descrição.');
+    return;
+  }
+
+  var tipo_labels = {
+    atraso_rota: 'Atraso na rota',
+    van_problema: 'Problema mecânico/van',
+    area_risco: 'Área de risco',
+    aluno_nao_encontrado: 'Aluno não encontrado',
+    resp_ausente: 'Responsável ausente',
+    crise_comportamental: 'Crise comportamental',
+    crise_convulsiva: 'Crise convulsiva',
+    machucado: 'Aluno machucado/mal-estar',
+    comportamento_inapropriado: 'Comportamento inapropriado',
+    ausencia_monitor: 'Ausência de monitor',
+    comunicacao_familia: 'Comunicação com família',
+    outro: 'Outro'
+  };
+  var nat_labels = { informativo:'Informativo', atencao:'Atenção', critico:'Crítico' };
+  var nat = nat_el ? nat_el.value : 'critico';
+
+  var reg = {
+    id: 'RM-' + _monRegCounter++,
+    monitor: monitor, van: van,
+    data: data, hora: hora,
+    turno: turno ? turno.value : '',
+    tipo: tipo_el.value,
+    tipo_label: tipo_labels[tipo_el.value] || tipo_el.value,
+    natureza_label: nat_labels[nat] || nat,
+    severidade: nat === 'critico' ? 'alta' : nat === 'atencao' ? 'media' : 'info',
+    alunos: alunos, descricao: desc, providencia: prov,
+    ts: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+  };
+
+  _monRegSent.unshift(reg);
+  renderMonSentList();
+
+  // Post to parent window (index.html) if in iframe or same origin
+  try {
+    if (window.opener && window.opener.receberRegistroMonitor) {
+      window.opener.receberRegistroMonitor(reg);
+    }
+    if (window.parent && window.parent !== window && window.parent.receberRegistroMonitor) {
+      window.parent.receberRegistroMonitor(reg);
+    }
+  } catch(e) {}
+
+  // Store in localStorage as fallback for cross-tab comm
+  try {
+    var stored = JSON.parse(localStorage.getItem('rc_monitor_regs') || '[]');
+    stored.unshift(reg);
+    localStorage.setItem('rc_monitor_regs', JSON.stringify(stored.slice(0,50)));
+  } catch(e) {}
+
+  // Clear form
+  ['mr_alunos','mr_desc','mr_prov'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('mr_tipo').value = '';
+  alert('✅ Registro enviado!\n\nID: ' + reg.id + '\nData: ' + reg.data + ' ' + reg.hora + '\nTipo: ' + reg.tipo_label + '\n\nA escola recebeu sua notificação.');
+}
+
+function renderMonSentList() {
+  var el = document.getElementById('monSentList');
+  if (!el) return;
+  if (_monRegSent.length === 0) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px">Nenhum registro enviado ainda.</div>';
+    return;
+  }
+  el.innerHTML = _monRegSent.map(function(r) {
+    return '<div class="mon-reg-sent">' +
+      '<span class="mon-reg-sent-icon">✅</span>' +
+      '<div class="mon-reg-sent-info">' +
+        '<div class="mon-reg-sent-title">' + r.tipo_label + ' — ' + r.van + '</div>' +
+        '<div class="mon-reg-sent-sub">Enviado em ' + r.ts + ' · ID: ' + r.id + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+</script>
+</body>
+</html>
