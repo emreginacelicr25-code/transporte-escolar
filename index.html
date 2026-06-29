@@ -893,9 +893,7 @@
   </div>
 </header>
 
-<div class="alert-banner">
-  ⚠️ <strong>Atenção:</strong> 2 monitores em licença médica — <strong>Izabelle</strong> (1° Horário, Van AD1) e <strong>Marcos</strong> (2° Horário, Van C3). Verifique o Painel de Monitores para sugestões de cobertura.
-</div>
+<div class="alert-banner" id="alertBanner" style="display:none"></div>
 
 <div class="layout">
   <!-- SIDEBAR -->
@@ -992,120 +990,8 @@
     <!-- Monitores -->
     <div class="sidebar-section">
       <h3>👤 Monitores</h3>
-      <div class="monitor-section">
-        <div style="font-size:11px;font-weight:700;color:var(--c2);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">1° Horário · 7h–16h</div>
-        <div class="monitor-card absent">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:#888">IZ</div>
-            <div>
-              <div class="monitor-name">Izabelle</div>
-              <div class="monitor-detail">Van AD1</div>
-            </div>
-            <span class="badge badge-absent">Licença</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-c1)">VI</div>
-            <div>
-              <div class="monitor-name">Vinicius</div>
-              <div class="monitor-detail">Van C1</div>
-            </div>
-            <span class="badge badge-t1">T1</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-c2)">VE</div>
-            <div>
-              <div class="monitor-name">Verônica</div>
-              <div class="monitor-detail">Van C2</div>
-            </div>
-            <span class="badge badge-t1">T1</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-c3)">ES</div>
-            <div>
-              <div class="monitor-name">Estephani</div>
-              <div class="monitor-detail">Van C3</div>
-            </div>
-            <span class="badge badge-t1">T1</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-ad2)">LA</div>
-            <div>
-              <div class="monitor-name">Lavinia</div>
-              <div class="monitor-detail">Van AD1</div>
-            </div>
-            <span class="badge badge-t1">T1</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-ad2)">MA</div>
-            <div>
-              <div class="monitor-name">Marcia</div>
-              <div class="monitor-detail">Van AD2</div>
-            </div>
-            <span class="badge badge-t1">T1</span>
-          </div>
-        </div>
-
-        <div style="font-size:11px;font-weight:700;color:var(--c5);text-transform:uppercase;letter-spacing:0.07em;margin-top:8px;margin-bottom:4px">2° Horário · 9h–18h</div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-c1)">CL</div>
-            <div>
-              <div class="monitor-name">Cláudia</div>
-              <div class="monitor-detail">Van C1</div>
-            </div>
-            <span class="badge badge-t2">T2</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-c2)">SU</div>
-            <div>
-              <div class="monitor-name">Sulamita</div>
-              <div class="monitor-detail">Van C2</div>
-            </div>
-            <span class="badge badge-t2">T2</span>
-          </div>
-        </div>
-        <div class="monitor-card absent">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:#888">MR</div>
-            <div>
-              <div class="monitor-name">Marcos</div>
-              <div class="monitor-detail">Van C3</div>
-            </div>
-            <span class="badge badge-absent">Licença</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-ad1)">AD</div>
-            <div>
-              <div class="monitor-name">Adrielle</div>
-              <div class="monitor-detail">Van AD1</div>
-            </div>
-            <span class="badge badge-t2">T2</span>
-          </div>
-        </div>
-        <div class="monitor-card">
-          <div class="monitor-header">
-            <div class="monitor-avatar" style="background:var(--van-ad2)">LE</div>
-            <div>
-              <div class="monitor-name">Letícia</div>
-              <div class="monitor-detail">Van AD2</div>
-            </div>
-            <span class="badge badge-t2">T2</span>
-          </div>
-        </div>
+      <div class="monitor-section" id="sidebarMonitors">
+        <!-- renderizado dinamicamente por renderSidebarMonitors() -->
       </div>
     </div>
   </aside>
@@ -1151,140 +1037,12 @@
 
     <!-- MONITORS TAB -->
     <div id="monitors-tab" class="tab-content">
-      <div class="absence-alert">
-        <h3>⚠️ Situação Atual: 2 Monitores em Licença Médica</h3>
-        <div class="absence-suggestion">
-          <strong>Izabelle</strong> — 1° Horário (7h–16h) · Van AD1 (Adaptada) com Motorista Márcio:<br>
-          → A Van AD1 tem Lavinia no 1° turno. Porém com apenas 1 monitor em van adaptada, recomenda-se redistribuir alunos de menor mobilidade para vans comuns nos horários de menor demanda. Adrielle (T2) pode ser realocada para cobrir parte do T1 se houver urgência.
-          <br><br>
-          <strong>Marcos</strong> — 2° Horário (9h–18h) · Van C3 (Comum) com Motorista Edilson:<br>
-          → A Van C3 tem Estephani no 1° turno. No 2° horário (a partir das 9h), esta van fica sem monitor. Sugestão: verificar se algum aluno do T2 da C3 pode ser temporariamente absorvido pela C1 ou C2, que têm Cláudia e Sulamita disponíveis.
-        </div>
-      </div>
-
-      <div class="optimizer-grid">
-        <div class="time-block-card">
-          <div class="time-block-header">
-            <h3>1° Horário · 7h–16h</h3>
-            <span class="badge badge-t1">5 monitores (1 ausente)</span>
-          </div>
-          <div class="time-block-body">
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-c1);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">VI</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Vinicius</div>
-                <div style="font-size:11px;color:var(--muted)">Van C1 com Motorista Anderson</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-c1)">C1</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-c2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">VE</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Verônica</div>
-                <div style="font-size:11px;color:var(--muted)">Van C2 com Motorista Aguinaldo</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-c2)">C2</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-c3);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">ES</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Estephani</div>
-                <div style="font-size:11px;color:var(--muted)">Van C3 com Motorista Edilson</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-c3)">C3</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-ad1);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">LA</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Lavinia</div>
-                <div style="font-size:11px;color:var(--muted)">Van AD1 com Motorista Márcio</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-ad1)">AD1 ♿</span>
-            </div>
-            <div class="monitor-row" style="opacity:0.5">
-              <div class="monitor-avatar" style="background:#888;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">IZ</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Izabelle <span class="badge badge-absent" style="font-size:9px">LICENÇA</span></div>
-                <div style="font-size:11px;color:var(--muted)">Van AD1 · 2ª monitor ausente</div>
-              </div>
-              <span class="monitor-van-badge" style="background:#888">AD1</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-ad2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">MA</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Marcia</div>
-                <div style="font-size:11px;color:var(--muted)">Van AD2 com Motorista Josivan</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-ad2)">AD2 ♿</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="time-block-card">
-          <div class="time-block-header">
-            <h3>2° Horário · 9h–18h</h3>
-            <span class="badge badge-t2">4 monitores (1 ausente)</span>
-          </div>
-          <div class="time-block-body">
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-c1);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">CL</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Cláudia</div>
-                <div style="font-size:11px;color:var(--muted)">Van C1 com Motorista Anderson</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-c1)">C1</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-c2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">SU</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Sulamita</div>
-                <div style="font-size:11px;color:var(--muted)">Van C2 com Motorista Aguinaldo</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-c2)">C2</span>
-            </div>
-            <div class="monitor-row" style="opacity:0.5">
-              <div class="monitor-avatar" style="background:#888;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">MR</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Marcos <span class="badge badge-absent" style="font-size:9px">LICENÇA</span></div>
-                <div style="font-size:11px;color:var(--muted)">Van C3 · monitor ausente</div>
-              </div>
-              <span class="monitor-van-badge" style="background:#888">C3</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-ad1);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">AD</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Adrielle</div>
-                <div style="font-size:11px;color:var(--muted)">Van AD1 com Motorista Márcio</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-ad1)">AD1 ♿</span>
-            </div>
-            <div class="monitor-row">
-              <div class="monitor-avatar" style="background:var(--van-ad2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">LE</div>
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:13px">Letícia</div>
-                <div style="font-size:11px;color:var(--muted)">Van AD2 com Motorista Josivan</div>
-              </div>
-              <span class="monitor-van-badge" style="background:var(--van-ad2)">AD2 ♿</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="routes-summary">
-        <h3>📋 Sugestões de Redistribuição — Cobertura da Licença</h3>
-        <div style="font-size:13px;line-height:1.8;color:var(--text)">
-          <p><strong style="color:var(--van-c3)">Van C3 sem monitor no 2° horário (9h–18h):</strong><br>
-          → Alunos do 2° turno da C3 poderiam ser temporariamente distribuídos entre C1 (Cláudia disponível) e C2 (Sulamita disponível), desde que a capacidade permita (máx 11 alunos por rota/horário por van comum).</p>
-          <br>
-          <p><strong style="color:var(--van-ad1)">Van AD1 com apenas 1 monitor no 1° horário:</strong><br>
-          → A Van AD1 é adaptada (cadeirantes). Lavinia está presente. Para os horários mais críticos com cadeirantes, avaliar se Adrielle (T2, chega às 9h) pode adiantar entrada para apoiar.</p>
-          <br>
-          <p><strong>Rotas de 07h a 09h (1° turno crítico):</strong> Apenas monitores do T1 estão disponíveis. Nenhum monitor da C3 está presente no 2° horário — as rotas de saída à tarde da C3 precisam de cobertura urgente.</p>
-        </div>
+      <div id="monitorsTabContent">
+        <!-- renderizado dinamicamente por renderMonitorsTab() -->
       </div>
     </div>
 
-    <!-- CAPACITY TAB -->
+        <!-- CAPACITY TAB -->
     <div id="capacity-tab" class="tab-content">
       <div class="section-title">📊 Ocupação por Horário e Van</div>
       <div id="capacityGrid"></div>
@@ -2126,7 +1884,7 @@ const vansData = {
     "capacity": 6,
     "mon1": "Marcia",
     "mon1_status": "ativo",
-    "mon2": "Letícia",
+    "mon2": "Izabelle",
     "mon2_status": "ativo"
   }
 };
@@ -2150,6 +1908,7 @@ function initApp() {
   setTimeout(initMap, 400);
   // Load all data from Supabase
   loadAllFromSupa();
+  initDynamicMonitors();
 }
 document.addEventListener('DOMContentLoaded', initApp);
 // Fallback: se o DOM já estiver pronto ao executar este script
@@ -3683,6 +3442,211 @@ function showSyncStatus(msg) {
 function hideSyncStatus() {
   var el = document.getElementById('syncStatus');
   if (el) el.style.display = 'none';
+}
+
+
+// ============================================================
+// DYNAMIC MONITORS — banner, sidebar e aba gerenciar
+// ============================================================
+
+function getVanColor(vanId) {
+  var colors = { C1:'#2a6496', C2:'#2aaa72', C3:'#9b59b6', AD1:'#d44a2a', AD2:'#e8a020' };
+  return colors[vanId] || '#888';
+}
+
+function getInitials(name) {
+  if (!name || name === 'Vaga em aberto') return '—';
+  var parts = name.trim().split(' ');
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+
+function statusLabel(st) {
+  return { ativo:'Ativo', licenca:'Licença', ferias:'Férias', vaga:'Vaga' }[st] || st;
+}
+
+function statusBadgeClass(st) {
+  return { ativo:'badge-t1', licenca:'badge-absent', ferias:'badge-absent', vaga:'' }[st] || '';
+}
+
+function statusBadgeStyle(st) {
+  if (st === 'vaga') return 'background:#e2e3e5;color:#383d41';
+  if (st === 'ferias') return 'background:#fff3cd;color:#856404';
+  return '';
+}
+
+// ── Alert banner ─────────────────────────────────────────────
+function renderAlertBanner() {
+  var banner = document.getElementById('alertBanner');
+  if (!banner) return;
+
+  var ausentes = [];
+  Object.entries(vansData).forEach(function(e) {
+    var id = e[0]; var v = e[1];
+    if (v.mon1_status === 'licenca') ausentes.push({ name: v.mon1, turno: '1°', van: id });
+    if (v.mon2_status === 'licenca') ausentes.push({ name: v.mon2, turno: '2°', van: id });
+  });
+
+  if (ausentes.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'flex';
+  var txt = ausentes.length === 1
+    ? '1 monitor em licença médica'
+    : ausentes.length + ' monitores em licença médica';
+
+  var nomes = ausentes.map(function(a) {
+    return '<strong>' + a.name + '</strong> (' + a.turno + '° Horário, Van ' + a.van + ')';
+  }).join(' e ');
+
+  banner.innerHTML = '⚠️ <strong>Atenção:</strong> ' + txt + ' — ' + nomes +
+    '. Verifique o Painel de Monitores para sugestões de cobertura.';
+}
+
+// ── Sidebar monitors ─────────────────────────────────────────
+function renderSidebarMonitors() {
+  var el = document.getElementById('sidebarMonitors');
+  if (!el) return;
+
+  var t1Monitors = [], t2Monitors = [];
+  var vanOrder = ['C1','C2','C3','AD1','AD2'];
+
+  vanOrder.forEach(function(id) {
+    var v = vansData[id];
+    if (!v) return;
+    var color = getVanColor(id);
+    t1Monitors.push({ name: v.mon1, status: v.mon1_status, van: id, color: color });
+    t2Monitors.push({ name: v.mon2, status: v.mon2_status, van: id, color: color });
+  });
+
+  function monitorCard(m, turno) {
+    var isAbsent = m.status === 'licenca' || m.status === 'ferias';
+    var isVaga   = m.status === 'vaga' || !m.name;
+    var badgeClass = statusBadgeClass(m.status);
+    var badgeStyle = statusBadgeStyle(m.status);
+    var avatarColor = isAbsent ? '#888' : isVaga ? '#aaa' : m.color;
+    var initials = isVaga ? '—' : getInitials(m.name);
+    var extraStyle = isAbsent || isVaga ? 'opacity:0.7' : '';
+    var badgeEl = badgeClass
+      ? '<span class="badge ' + badgeClass + '" ' + (badgeStyle ? 'style="' + badgeStyle + '"' : '') + '>' + (isAbsent ? statusLabel(m.status) : turno) + '</span>'
+      : '<span class="badge" style="' + badgeStyle + '">' + statusLabel(m.status) + '</span>';
+
+    return '<div class="monitor-card' + (isAbsent ? ' absent' : '') + '" style="' + extraStyle + '">' +
+      '<div class="monitor-header">' +
+        '<div class="monitor-avatar" style="background:' + avatarColor + '">' + initials + '</div>' +
+        '<div>' +
+          '<div class="monitor-name">' + (isVaga ? 'Vaga em aberto' : m.name) + '</div>' +
+          '<div class="monitor-detail">Van ' + m.van + '</div>' +
+        '</div>' +
+        badgeEl +
+      '</div></div>';
+  }
+
+  var html = '<div style="font-size:11px;font-weight:700;color:var(--c2);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">1° Horário · 7h–16h</div>';
+  t1Monitors.forEach(function(m) { html += monitorCard(m, 'T1'); });
+  html += '<div style="font-size:11px;font-weight:700;color:var(--c5);text-transform:uppercase;letter-spacing:0.07em;margin-top:8px;margin-bottom:4px">2° Horário · 9h–18h</div>';
+  t2Monitors.forEach(function(m) { html += monitorCard(m, 'T2'); });
+
+  el.innerHTML = html;
+}
+
+// ── Gestão de Monitores tab ───────────────────────────────────
+function renderMonitorsTab() {
+  var el = document.getElementById('monitorsTabContent');
+  if (!el) return;
+
+  var ausentes = [];
+  var vanOrder = ['C1','C2','C3','AD1','AD2'];
+
+  // Absence alert
+  Object.entries(vansData).forEach(function(e) {
+    var id = e[0]; var v = e[1];
+    if (v.mon1_status !== 'ativo') ausentes.push({ name: v.mon1, status: v.mon1_status, turno: '1°', van: id, turno_h: '7h–16h' });
+    if (v.mon2_status !== 'ativo') ausentes.push({ name: v.mon2, status: v.mon2_status, turno: '2°', van: id, turno_h: '9h–18h' });
+  });
+
+  var absHtml = '';
+  if (ausentes.length > 0) {
+    absHtml = '<div class="absence-alert"><h3>⚠️ Situação Atual: ' + ausentes.length +
+      ' monitor(es) em situação especial</h3><div class="absence-suggestion">';
+    ausentes.forEach(function(a) {
+      absHtml += '<strong style="color:var(--van-' + a.van.toLowerCase().replace('d','d') + ')">' + a.name + '</strong>';
+      absHtml += ' — ' + a.turno + '° Horário (' + a.turno_h + ') · Van ' + a.van + ' · <em>' + statusLabel(a.status) + '</em><br>';
+    });
+    absHtml += '</div></div>';
+  }
+
+  // Two columns T1 / T2
+  function blockCard(title, badge, badgeClass, monitors) {
+    var count = monitors.filter(function(m){ return m.status === 'ativo'; }).length;
+    var absent = monitors.filter(function(m){ return m.status !== 'ativo'; }).length;
+    var rows = monitors.map(function(m) {
+      var color = getVanColor(m.van);
+      var isAbsent = m.status !== 'ativo';
+      var isVaga = m.status === 'vaga' || !m.name;
+      var initials = isVaga ? '—' : getInitials(m.name);
+      var avatarColor = isAbsent ? '#888' : isVaga ? '#aaa' : color;
+      return '<div class="monitor-row" style="' + (isAbsent||isVaga?'opacity:0.6':'') + '">' +
+        '<div class="monitor-avatar" style="background:' + avatarColor + ';width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white">' + initials + '</div>' +
+        '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + (isVaga ? 'Vaga em aberto' : m.name) +
+          (isAbsent && !isVaga ? ' <span class="badge badge-absent" style="font-size:9px">' + statusLabel(m.status).toUpperCase() + '</span>' : '') +
+        '</div><div style="font-size:11px;color:var(--muted)">Van ' + m.van + ' com Motorista ' + vansData[m.van].driver + '</div></div>' +
+        '<span class="monitor-van-badge" style="background:' + color + '">' + m.van + '</span>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="time-block-card">' +
+      '<div class="time-block-header"><h3>' + title + '</h3>' +
+      '<span class="badge ' + badgeClass + '">' + count + ' ativos' + (absent > 0 ? ' · ' + absent + ' ausente(s)' : '') + '</span></div>' +
+      '<div class="time-block-body">' + rows + '</div></div>';
+  }
+
+  var t1 = vanOrder.map(function(id){ return { name: vansData[id].mon1, status: vansData[id].mon1_status, van: id }; });
+  var t2 = vanOrder.map(function(id){ return { name: vansData[id].mon2, status: vansData[id].mon2_status, van: id }; });
+
+  var html = absHtml +
+    '<div class="optimizer-grid">' +
+    blockCard('1° Horário · 7h–16h', '', 'badge-t1', t1) +
+    blockCard('2° Horário · 9h–18h', '', 'badge-t2', t2) +
+    '</div>';
+
+  // Redistribution suggestions
+  if (ausentes.length > 0) {
+    html += '<div class="routes-summary"><h3>📋 Sugestões de Cobertura</h3><div style="font-size:13px;line-height:1.8;color:var(--text)">';
+    ausentes.forEach(function(a) {
+      if (a.status === 'licenca' || a.status === 'ferias') {
+        var others = Object.entries(vansData).filter(function(e){
+          return e[0] !== a.van && (a.turno === '1°' ? e[1].mon1_status === 'ativo' : e[1].mon2_status === 'ativo');
+        });
+        var suggestion = others.length > 0
+          ? 'Vans com monitor disponível: ' + others.map(function(e){ return e[0]; }).join(', ')
+          : 'Nenhum monitor disponível no mesmo turno — acionar substituto.';
+        html += '<p><strong style="color:var(--c4)">' + a.name + ' (' + statusLabel(a.status) + ') — Van ' + a.van + ' · ' + a.turno + '° Horário:</strong><br>→ ' + suggestion + '</p><br>';
+      }
+    });
+    html += '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ── Patch saveVan to re-render everything ─────────────────────
+var _origSaveVan = saveVan;
+saveVan = function() {
+  _origSaveVan();
+  renderAlertBanner();
+  renderSidebarMonitors();
+  renderMonitorsTab();
+  renderAdminVans();
+  syncVansData();
+};
+
+// ── Init ──────────────────────────────────────────────────────
+function initDynamicMonitors() {
+  renderAlertBanner();
+  renderSidebarMonitors();
+  renderMonitorsTab();
 }
 
 </script>
