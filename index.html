@@ -3650,5 +3650,41 @@ function initDynamicMonitors() {
 }
 
 </script>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODO CONSULTA — acesso somente leitura (Equipe Administrativo
+     Técnico-Pedagógica). Ativado via ?consulta=1 na URL.
+     ══════════════════════════════════════════════════════════════ -->
+<style id="consulta-css">
+.modo-consulta-banner{position:sticky;top:0;z-index:999;background:#c98a1e;color:#fff;text-align:center;
+  font-weight:700;font-size:.82rem;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+</style>
+<script>
+(function(){
+  if(new URLSearchParams(location.search).get('consulta')!=='1') return;
+  document.body.classList.add('modo-consulta');
+
+  var banner=document.createElement('div');
+  banner.className='modo-consulta-banner';
+  banner.textContent='🔎 MODO CONSULTA — visualização somente leitura. Adição, edição, exclusão e impressão estão desativadas.';
+  document.body.insertBefore(banner, document.body.firstChild);
+
+  // Esconde abas exclusivas de escrita/administração
+  var abasEscrita=['Registros Monitores','Responsáveis','Secretaria','COTRAN/SME','Editar Dados'];
+  document.querySelectorAll('.tab').forEach(function(b){
+    if(abasEscrita.some(function(t){return b.textContent.includes(t);})) b.style.display='none';
+  });
+
+  function bloqueado(){ alert('Modo consulta: esta ação não está disponível para a equipe administrativo técnico-pedagógica.'); }
+
+  ['saveStudent','removeStudent','saveVan','salvarRegResp','salvarRegSec','syncAlunosToSupa',
+   'parseWALink','clearWACoords','removeWACoords','gerarEmailCotran','copiarEmail',
+   'exportHTML','exportRegMonitor'].forEach(function(fn){
+    if(typeof window[fn]==='function') window[fn]=bloqueado;
+  });
+
+  window.print=bloqueado;
+})();
+</script>
 </body>
 </html>
