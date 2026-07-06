@@ -301,7 +301,10 @@
     <div class="hd-sub">E.M. Regina Celi — Duque de Caxias</div>
   </div>
   <div class="hd-right">
-    <button onclick="toggleRegTab()" style="background:#e8a020;color:white;border:none;border-radius:8px;padding:7px 13px;font-family:DM Sans,sans-serif;font-size:12px;font-weight:700;cursor:pointer">📝 Registrar</button>
+    <button onclick="toggleRegTab()" style="background:#e8a020;color:white;border:none;border-radius:8px;padding:7px 13px;font-family:DM Sans,sans-serif;font-size:12px;font-weight:700;cursor:pointer;position:relative">
+    📝 Registrar
+    <span id="queueBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e74c3c;color:white;font-size:9px;padding:1px 5px;border-radius:8px;white-space:nowrap"></span>
+  </button>
     <span id="hd-count" style="font-size:12px;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:10px;font-weight:600"></span>
   </div>
 </header>
@@ -368,6 +371,9 @@
       </div>
 
       <div style="padding:14px">
+
+        <!-- Offline queue -->
+        <div id="offlineQueueList" style="display:none;margin-bottom:14px;padding:10px;background:#fffbeb;border:1px solid #f0c040;border-radius:10px"></div>
 
         <!-- Sent log (summary only) -->
         <div style="margin-bottom:16px">
@@ -1058,9 +1064,17 @@ function enviarRegistroMonitor() {
     var el = document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('mr_tipo').value = '';
+  // Tenta salvar no banco — se falhar, adiciona à fila offline
   saveMonRegToSupa(reg).then(function(ok) {
-    var status = ok ? '✅ Salvo no banco de dados da escola' : '⚠️ Salvo localmente (sem conexão)';
-    alert('📤 REGISTRO ENVIADO!\n\nID: ' + reg.id + '\nData: ' + reg.data + ' às ' + reg.hora + '\nMonitor: ' + reg.monitor + '\nVan: ' + reg.van + '\nTipo: ' + reg.tipo_label + '\nNatureza: ' + reg.natureza_label + '\n\n' + status + '\n\nGuarde o ID como comprovante.');
+    if (ok) {
+      alert('📤 REGISTRO ENVIADO!\n\nID: ' + reg.id + '\nData: ' + reg.data + ' às ' + reg.hora + '\nMonitor: ' + reg.monitor + '\nVan: ' + reg.van + '\nTipo: ' + reg.tipo_label + '\nNatureza: ' + reg.natureza_label + '\n\n✅ Salvo no banco de dados da escola.\n\nGuarde o ID como comprovante.');
+    } else {
+      // Banco indisponível — salvar na fila offline
+      addToOfflineQueue(reg);
+      updateQueueBadge();
+      renderOfflineQueue();
+      alert('📤 REGISTRO SALVO LOCALMENTE!\n\nID: ' + reg.id + '\nData: ' + reg.data + ' às ' + reg.hora + '\nMonitor: ' + reg.monitor + '\nVan: ' + reg.van + '\nTipo: ' + reg.tipo_label + '\n\n⚠️ O banco está temporariamente indisponível.\nO registro foi salvo no seu celular e será enviado automaticamente quando a conexão voltar.\n\nGuarde o ID: ' + reg.id);
+    }
   });
 }
 
@@ -1109,6 +1123,190 @@ async function saveMonRegToSupa(reg) {
     return true;
   } catch(e) { return false; }
 }
+
+
+// ============================================================
+// FILA OFFLINE — salva registros localmente e reenvia
+// automaticamente quando o banco voltar
+// ============================================================
+
+var OFFLINE_QUEUE_KEY = 'rc_transporte_fila_offline';
+var _retryTimer = null;
+var _isOnline = true;
+
+// Salva registro na fila offline (localStorage)
+function addToOfflineQueue(reg) {
+  try {
+    var fila = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    reg._queued_at = new Date().toISOString();
+    fila.push(reg);
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(fila));
+    console.log('Registro adicionado à fila offline. Total na fila:', fila.length);
+    return true;
+  } catch(e) {
+    console.warn('Erro ao salvar na fila offline:', e);
+    return false;
+  }
+}
+
+// Lê a fila offline
+function getOfflineQueue() {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+// Remove um registro da fila (após envio bem-sucedido)
+function removeFromQueue(id) {
+  try {
+    var fila = getOfflineQueue().filter(function(r){ return r.id !== id; });
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(fila));
+  } catch(e) {}
+}
+
+// Tenta enviar todos os registros da fila
+async function flushOfflineQueue() {
+  var fila = getOfflineQueue();
+  if (fila.length === 0) return;
+
+  updateQueueBadge();
+  var enviados = 0;
+  var falhas = 0;
+
+  for (var i = 0; i < fila.length; i++) {
+    var reg = fila[i];
+    var ok = await saveMonRegToSupa(reg);
+    if (ok) {
+      removeFromQueue(reg.id);
+      enviados++;
+    } else {
+      falhas++;
+    }
+    // Pequena pausa entre envios
+    await new Promise(function(r){ setTimeout(r, 500); });
+  }
+
+  updateQueueBadge();
+
+  if (enviados > 0) {
+    showQueueToast(enviados + ' registro(s) pendente(s) enviado(s) ao banco! ✅');
+  }
+  if (falhas > 0) {
+    console.warn(falhas + ' registros ainda na fila — banco pode estar instável.');
+  }
+}
+
+// Verifica conectividade com o Supabase
+async function checkSupabaseHealth() {
+  try {
+    var res = await fetch(MON_SUPA_URL + '/rest/v1/transporte_registros_monitor?select=id&limit=1', {
+      headers: {
+        'apikey': MON_SUPA_KEY,
+        'Authorization': 'Bearer ' + MON_SUPA_KEY
+      }
+    });
+    return res.ok;
+  } catch(e) {
+    return false;
+  }
+}
+
+// Inicia o retry automático — testa a cada 2 minutos
+function startOfflineRetry() {
+  if (_retryTimer) clearInterval(_retryTimer);
+  _retryTimer = setInterval(async function() {
+    var fila = getOfflineQueue();
+    if (fila.length === 0) return; // nada pendente
+
+    var online = await checkSupabaseHealth();
+    if (online) {
+      console.log('Banco online! Enviando fila offline...');
+      flushOfflineQueue();
+    } else {
+      console.log('Banco ainda instável. Fila com', fila.length, 'registro(s).');
+    }
+  }, 120000); // 2 minutos
+}
+
+// Atualiza badge de fila no botão registrar
+function updateQueueBadge() {
+  var fila = getOfflineQueue();
+  var badge = document.getElementById('queueBadge');
+  if (!badge) return;
+  if (fila.length > 0) {
+    badge.textContent = fila.length + ' pendente(s)';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Toast de queue
+function showQueueToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#166534;color:white;padding:12px 20px;border-radius:10px;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);text-align:center;max-width:90vw';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 4000);
+}
+
+// Renderiza a fila na tela dos registros enviados
+function renderOfflineQueue() {
+  var fila = getOfflineQueue();
+  var el = document.getElementById('offlineQueueList');
+  if (!el) return;
+
+  if (fila.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.style.display = 'block';
+  el.innerHTML = '<div style="font-size:11px;font-weight:700;color:#856404;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">⏳ Aguardando conexão com o banco (' + fila.length + ')</div>' +
+    fila.map(function(r) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fff8e1;border:1px solid #f0c040;border-radius:6px;margin-bottom:4px">' +
+        '<span style="font-size:16px">📤</span>' +
+        '<div style="flex:1"><div style="font-size:12px;font-weight:600;color:#856404">' + r.tipo_label + ' — ' + r.van + '</div>' +
+        '<div style="font-size:11px;color:#a16207">Salvo em ' + new Date(r._queued_at).toLocaleString('pt-BR') + ' · ID: ' + r.id + '</div></div>' +
+      '<button data-regid="' + r.id + '" class="btn-reenviar" style="background:#e8a020;color:white;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:700">Reenviar</button>' +
+      '</div>';
+
+  // Bind reenviar buttons
+  if (el) el.querySelectorAll('.btn-reenviar').forEach(function(btn) {
+    btn.addEventListener('click', function(){ tentarReenviar(this.getAttribute('data-regid')); });
+  });    }).join('');
+}
+
+// Reenvio manual de um registro específico
+async function tentarReenviar(id) {
+  var fila = getOfflineQueue();
+  var reg = fila.find(function(r){ return r.id === id; });
+  if (!reg) return;
+
+  var ok = await saveMonRegToSupa(reg);
+  if (ok) {
+    removeFromQueue(id);
+    updateQueueBadge();
+    renderOfflineQueue();
+    renderMonSentList();
+    showQueueToast('Registro reenviado com sucesso! ✅');
+  } else {
+    showQueueToast('Banco ainda indisponível. Tente novamente em alguns minutos.');
+  }
+}
+
+// Init ao carregar
+window.addEventListener('load', function() {
+  updateQueueBadge();
+  renderOfflineQueue();
+  startOfflineRetry();
+
+  // Tenta enviar fila quando conexão volta
+  window.addEventListener('online', function() {
+    console.log('Conexão detectada — tentando enviar fila...');
+    setTimeout(flushOfflineQueue, 2000);
+  });
+});
 
 </script>
 </body>
