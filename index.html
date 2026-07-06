@@ -1273,7 +1273,7 @@
           <div class="reg-card-header">
             <span class="reg-card-title">🔍 Detalhes Completos dos Registros</span>
             <div style="display:flex;gap:8px">
-              <button onclick="imprimirRegistros('monitor')" style="background:#1a3a5c;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir</button>
+              <button onclick="imprimirRegistros('monitor')" style="background:#1a3a5c;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir Todos</button>
               <button onclick="exportRegMonitor()" style="background:#2a6496;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">⬇️ Exportar</button>
             </div>
           </div>
@@ -1296,7 +1296,7 @@
           <div class="reg-card-header">
             <span class="reg-card-title">📋 Registros de Responsáveis</span>
             <div style="display:flex;align-items:center;gap:8px">
-              <button onclick="imprimirRegistros('resp')" style="background:#1a3a5c;color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir</button>
+              <button onclick="imprimirRegistros('resp')" style="background:#2a6496;color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir Todos</button>
               <span id="respRegCount" style="font-size:12px;background:var(--c2);color:white;padding:2px 9px;border-radius:10px;font-weight:600">0</span>
           </div>
           <div class="reg-card-body">
@@ -1389,7 +1389,7 @@
           <div class="reg-card-header">
             <span class="reg-card-title">📋 Registros da Secretaria</span>
             <div style="display:flex;align-items:center;gap:8px">
-              <button onclick="imprimirRegistros('sec')" style="background:#1a3a5c;color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir</button>
+              <button onclick="imprimirRegistros('sec')" style="background:#6c3483;color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir Todos</button>
               <span id="secRegCount" style="font-size:12px;background:#9b59b6;color:white;padding:2px 9px;border-radius:10px;font-weight:600">0</span>
           </div>
           <div class="reg-card-body">
@@ -2813,13 +2813,16 @@ function renderMonRegLog() {
     el.innerHTML = '<div class="empty-state">Nenhum registro recebido ainda.</div>'; return;
   }
   el.innerHTML = registrosMonitor.map(function(r, i) {
-    return '<div class="log-item sev-info" onclick="mostrarDetalheMonitor(' + i + ')" style="cursor:pointer">' +
-      '<span class="log-icon">' + iconTipo(r.tipo) + '</span>' +
-      '<div class="log-meta">' +
+    return '<div class="log-item sev-info" style="cursor:pointer">' +
+      '<span class="log-icon" onclick="mostrarDetalheMonitor(' + i + ')">' + iconTipo(r.tipo) + '</span>' +
+      '<div class="log-meta" onclick="mostrarDetalheMonitor(' + i + ')">' +
         '<div class="log-title">' + r.monitor + ' — ' + (r.van||'') + '</div>' +
         '<div class="log-sub">Tipo: ' + r.tipo_label + ' · ' + r.natureza_label + '</div>' +
       '</div>' +
-      '<span class="log-date">' + r.data + ' ' + r.hora + '</span>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">' +
+        '<span class="log-date">' + r.data + ' ' + r.hora + '</span>' +
+        '<button data-tipo="monitor" data-idx="' + i + '" class="btn-imprimir-reg" style="background:#1a3a5c;color:white;border:none;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">Imprimir</button>' +
+      '</div>' +
     '</div>';
   }).join('');
 }
@@ -2947,15 +2950,18 @@ function renderRespLog() {
   if (registrosResp.length === 0) {
     el.innerHTML = '<div class="empty-state">Nenhum registro ainda.</div>'; return;
   }
-  el.innerHTML = registrosResp.map(function(r) {
+  el.innerHTML = registrosResp.map(function(r, i) {
     return '<div class="log-item ' + sevClass(r.severidade) + '">' +
       '<span class="log-icon">' + sevEmoji(r.severidade) + '</span>' +
       '<div class="log-meta">' +
         '<div class="log-title">' + r.responsavel + ' — ' + r.aluno + '</div>' +
         '<div class="log-sub">' + r.tipo + ' · Van: ' + (r.van||'—') + '</div>' +
-        '<div class="log-sub" style="margin-top:4px;color:var(--text)">' + (r.relato.length > 100 ? r.relato.slice(0,100)+'…' : r.relato) + '</div>' +
+        '<div class="log-sub" style="margin-top:4px;color:var(--text)">' + (r.relato && r.relato.length > 100 ? r.relato.slice(0,100)+'…' : (r.relato||'')) + '</div>' +
       '</div>' +
-      '<span class="log-date">' + r.data + '</span>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">' +
+        '<span class="log-date">' + r.data + '</span>' +
+        '<button data-tipo="resp" data-idx="' + i + '" class="btn-imprimir-reg" style="background:#2a6496;color:white;border:none;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">Imprimir</button>' +
+      '</div>' +
     '</div>';
   }).join('');
 }
@@ -3025,16 +3031,19 @@ function renderSecLog() {
   if (registrosSec.length === 0) {
     el.innerHTML = '<div class="empty-state">Nenhum registro ainda.</div>'; return;
   }
-  el.innerHTML = registrosSec.map(function(r) {
+  el.innerHTML = registrosSec.map(function(r, i) {
     return '<div class="log-item ' + sevClass(r.severidade) + '">' +
       '<span class="log-icon">' + iconTipo(r.tipo) + '</span>' +
       '<div class="log-meta">' +
         '<div class="log-title">' + sevEmoji(r.severidade) + ' ' + r.tipo.replace(/_/g,' ').toUpperCase() + (r.van ? ' · ' + r.van : '') + '</div>' +
         '<div class="log-sub">' + (r.profissional||'') + (r.n_alunos ? ' · ' + r.n_alunos + ' alunos afetados' : '') + '</div>' +
-        '<div class="log-sub" style="margin-top:4px;color:var(--text)">' + (r.descricao.length>100 ? r.descricao.slice(0,100)+'…' : r.descricao) + '</div>' +
-        (r.gerar_cotran ? '<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-weight:700">📨 COTRAN</span>' : '') +
+        '<div class="log-sub" style="margin-top:4px;color:var(--text)">' + (r.descricao && r.descricao.length>100 ? r.descricao.slice(0,100)+'…' : (r.descricao||'')) + '</div>' +
+        (r.gerar_cotran ? '<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-weight:700">COTRAN</span>' : '') +
       '</div>' +
-      '<span class="log-date">' + r.data + '</span>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">' +
+        '<span class="log-date">' + r.data + '</span>' +
+        '<button data-tipo="sec" data-idx="' + i + '" class="btn-imprimir-reg" style="background:#6c3483;color:white;border:none;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">Imprimir</button>' +
+      '</div>' +
     '</div>';
   }).join('');
 }
@@ -3184,6 +3193,15 @@ function renderCotranLog() {
 
 // Init registro panels
 function initRegistros() {
+  // Event delegation for individual print buttons
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn-imprimir-reg');
+    if (btn) {
+      var tipo = btn.getAttribute('data-tipo');
+      var idx = parseInt(btn.getAttribute('data-idx'));
+      imprimirRegistros(tipo, idx);
+    }
+  });
   var today = new Date().toISOString().slice(0,10);
   ['rr_data','rs_data','ct_data'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.value = today;
@@ -3754,30 +3772,30 @@ showTab = function(id, btn) {
 // ============================================================
 // IMPRESSÃO DE REGISTROS — documento timbrado
 // ============================================================
-function imprimirRegistros(tipo) {
+function imprimirRegistros(tipo, idx) {
   var regs = [];
   var titulo = '';
   var subtitulo = '';
   var corHeader = '#1a3a5c';
 
   if (tipo === 'monitor') {
-    regs = registrosMonitor;
-    titulo = 'Registros de Ocorrencias — Monitores de Transporte';
-    subtitulo = 'Registros enviados pelos monitores de transporte escolar';
+    regs = (idx !== undefined) ? [registrosMonitor[idx]] : registrosMonitor;
+    titulo = 'Registro de Ocorrencia — Monitor de Transporte';
+    subtitulo = 'Registro enviado pelo monitor de transporte escolar';
     corHeader = '#1a3a5c';
   } else if (tipo === 'resp') {
-    regs = registrosResp;
-    titulo = 'Registros de Relatos de Responsaveis';
-    subtitulo = 'Relatos recebidos de responsaveis pelos alunos atendidos pelo transporte escolar';
+    regs = (idx !== undefined) ? [registrosResp[idx]] : registrosResp;
+    titulo = 'Registro de Relato de Responsavel';
+    subtitulo = 'Relato recebido de responsavel pelo aluno atendido pelo transporte escolar';
     corHeader = '#2a6496';
   } else if (tipo === 'sec') {
-    regs = registrosSec;
-    titulo = 'Registros Institucionais — Secretaria Escolar';
-    subtitulo = 'Ocorrencias registradas pela Secretaria Escolar e Equipe Diretiva';
+    regs = (idx !== undefined) ? [registrosSec[idx]] : registrosSec;
+    titulo = 'Registro Institucional — Secretaria Escolar';
+    subtitulo = 'Ocorrencia registrada pela Secretaria Escolar e Equipe Diretiva';
     corHeader = '#6c3483';
   }
 
-  if (regs.length === 0) { showToast('Nenhum registro para imprimir.'); return; }
+  if (!regs || regs.length === 0 || !regs[0]) { showToast('Nenhum registro para imprimir.'); return; }
 
   var hoje = new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'});
   var agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
