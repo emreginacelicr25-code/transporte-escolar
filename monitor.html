@@ -1202,7 +1202,8 @@ async function checkSupabaseHealth() {
     var res = await fetch(MON_SUPA_URL + '/rest/v1/transporte_registros_monitor?select=id&limit=1', {
       headers: {
         'apikey': MON_SUPA_KEY,
-        'Authorization': 'Bearer ' + MON_SUPA_KEY
+        'Authorization': 'Bearer ' + MON_SUPA_KEY,
+        'Content-Type': 'application/json'
       }
     });
     return res.ok;
