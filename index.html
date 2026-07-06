@@ -1272,7 +1272,10 @@
         <div class="reg-card">
           <div class="reg-card-header">
             <span class="reg-card-title">🔍 Detalhes Completos dos Registros</span>
-            <button onclick="exportRegMonitor()" style="background:#2a6496;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">⬇️ Exportar</button>
+            <div style="display:flex;gap:8px">
+              <button onclick="imprimirRegistros('monitor')" style="background:#1a3a5c;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir</button>
+              <button onclick="exportRegMonitor()" style="background:#2a6496;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">⬇️ Exportar</button>
+            </div>
           </div>
           <div class="reg-card-body">
             <div id="monRegDetail" class="log-list">
@@ -1292,7 +1295,9 @@
         <div class="reg-card">
           <div class="reg-card-header">
             <span class="reg-card-title">📋 Registros de Responsáveis</span>
-            <span id="respRegCount" style="font-size:12px;background:var(--c2);color:white;padding:2px 9px;border-radius:10px;font-weight:600">0</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button onclick="imprimirRegistros('resp')" style="background:#1a3a5c;color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir</button>
+              <span id="respRegCount" style="font-size:12px;background:var(--c2);color:white;padding:2px 9px;border-radius:10px;font-weight:600">0</span>
           </div>
           <div class="reg-card-body">
             <div id="respRegLog" class="log-list">
@@ -1383,7 +1388,9 @@
         <div class="reg-card">
           <div class="reg-card-header">
             <span class="reg-card-title">📋 Registros da Secretaria</span>
-            <span id="secRegCount" style="font-size:12px;background:#9b59b6;color:white;padding:2px 9px;border-radius:10px;font-weight:600">0</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button onclick="imprimirRegistros('sec')" style="background:#1a3a5c;color:white;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨️ Imprimir</button>
+              <span id="secRegCount" style="font-size:12px;background:#9b59b6;color:white;padding:2px 9px;border-radius:10px;font-weight:600">0</span>
           </div>
           <div class="reg-card-body">
             <div id="secRegLog" class="log-list">
@@ -3741,6 +3748,141 @@ showTab = function(id, btn) {
     refreshAllRegistros();
   }
 };
+
+
+
+// ============================================================
+// IMPRESSÃO DE REGISTROS — documento timbrado
+// ============================================================
+function imprimirRegistros(tipo) {
+  var regs = [];
+  var titulo = '';
+  var subtitulo = '';
+  var corHeader = '#1a3a5c';
+
+  if (tipo === 'monitor') {
+    regs = registrosMonitor;
+    titulo = 'Registros de Ocorrencias — Monitores de Transporte';
+    subtitulo = 'Registros enviados pelos monitores de transporte escolar';
+    corHeader = '#1a3a5c';
+  } else if (tipo === 'resp') {
+    regs = registrosResp;
+    titulo = 'Registros de Relatos de Responsaveis';
+    subtitulo = 'Relatos recebidos de responsaveis pelos alunos atendidos pelo transporte escolar';
+    corHeader = '#2a6496';
+  } else if (tipo === 'sec') {
+    regs = registrosSec;
+    titulo = 'Registros Institucionais — Secretaria Escolar';
+    subtitulo = 'Ocorrencias registradas pela Secretaria Escolar e Equipe Diretiva';
+    corHeader = '#6c3483';
+  }
+
+  if (regs.length === 0) { showToast('Nenhum registro para imprimir.'); return; }
+
+  var hoje = new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'});
+  var agora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+  function sevColor(s) { return {alta:'#c0392b',media:'#d35400',baixa:'#27ae60',info:'#2980b9'}[s]||'#555'; }
+  function sevLabel(s) { return {alta:'Alta',media:'Media',baixa:'Baixa',info:'Informativo'}[s]||s||''; }
+
+  function tr(label, value) {
+    return '<tr>' +
+      '<td style="padding:6px 14px;font-weight:600;color:#6b7a8d;white-space:nowrap;border-bottom:1px solid #f0f4f8;width:180px;vertical-align:top;font-size:11px;text-transform:uppercase">' + label + '</td>' +
+      '<td style="padding:6px 14px;border-bottom:1px solid #f0f4f8;font-size:12px;color:#1a2534">' + (value||'--') + '</td>' +
+    '</tr>';
+  }
+
+  function blocoHeader(cor, n, t, d) {
+    return '<div style="background:' + cor + ';color:white;padding:8px 14px;display:flex;justify-content:space-between;align-items:center">' +
+      '<span style="font-weight:700;font-size:13px">Registro #' + n + ' — ' + t + '</span>' +
+      '<span style="font-size:11px;opacity:0.85">' + d + '</span>' +
+    '</div>';
+  }
+
+  function blocoFooter(id, sev) {
+    return '<div style="padding:8px 14px;background:#f7f9fb;border-top:1px solid #dde3ea;font-size:11px;color:#888">' +
+      'ID: ' + id + ' &nbsp;|&nbsp; Severidade: <span style="color:' + sevColor(sev) + ';font-weight:700">' + sevLabel(sev) + '</span>' +
+    '</div>';
+  }
+
+  function bloco(cor, n, headerTitle, date, rows, id, sev) {
+    return '<div style="page-break-inside:avoid;margin-bottom:18px;border:1px solid #dde3ea;border-radius:8px;overflow:hidden">' +
+      blocoHeader(cor, n, headerTitle, date) +
+      '<table style="width:100%;border-collapse:collapse">' + rows + '</table>' +
+      blocoFooter(id, sev) +
+    '</div>';
+  }
+
+  var linhas = '';
+  regs.forEach(function(r, i) {
+    var n = i + 1;
+    var rows = '';
+    if (tipo === 'monitor') {
+      rows = tr('Monitor', r.monitor) + tr('Van', r.van) + tr('Turno', r.turno) +
+        tr('Natureza', r.natureza_label) + tr('Aluno(s)', r.alunos) +
+        tr('Descricao', r.descricao) + tr('Providencia', r.providencia) + tr('Enviado em', r.ts);
+      linhas += bloco('#1a3a5c', n, r.tipo_label||r.tipo||'Ocorrencia', (r.data||'') + ' ' + (r.hora||''), rows, r.id, r.severidade);
+    } else if (tipo === 'resp') {
+      rows = tr('Responsavel', r.responsavel) + tr('Aluno', r.aluno) + tr('Van', r.van) +
+        tr('Tipo', r.tipo) + tr('Relato', r.relato) + tr('Providencias', r.providencias) + tr('Registrado por', r.registrado_por);
+      linhas += bloco('#2a6496', n, r.tipo||'Relato', r.data||'', rows, r.id, r.severidade);
+    } else {
+      rows = tr('Van', r.van) + tr('Profissional', r.profissional) +
+        tr('Alunos afetados', r.n_alunos ? r.n_alunos + ' aluno(s)' : '--') +
+        tr('Tipo', (r.tipo||'').replace(/_/g,' ')) +
+        tr('Descricao', r.descricao) + tr('Providencias', r.providencias) +
+        tr('COTRAN', r.gerar_cotran ? 'Sim' : 'Nao') + tr('Registrado por', r.registrado_por);
+      linhas += bloco('#6c3483', n, (r.tipo||'').replace(/_/g,' ').toUpperCase(), (r.data||'') + ' ' + (r.hora||''), rows, r.id, r.severidade);
+    }
+  });
+
+  var css = [
+    '* { box-sizing:border-box; margin:0; padding:0; }',
+    'body { font-family:Arial,sans-serif; font-size:12px; color:#1a2534; background:white; padding:20px; }',
+    '@media print { body{padding:0} .no-print{display:none!important} @page{margin:15mm;size:A4} }',
+    '.timbre { border-bottom:3px solid #1a3a5c; padding-bottom:12px; margin-bottom:20px; }',
+    '.sig-grid { display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:10px; }',
+    '.sig-box { text-align:center; }',
+    '.sig-line { border-top:1px solid #888; margin-top:50px; margin-bottom:6px; }',
+    '.rodape { margin-top:30px; padding-top:10px; border-top:1px solid #dde3ea; font-size:10px; color:#aaa; text-align:center; }',
+    '.btn-print { position:fixed; bottom:24px; right:24px; background:#1a3a5c; color:white; border:none; padding:14px 24px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.2); }'
+  ].join('\n');
+
+  var sigBlock = '<div style="margin-top:40px;page-break-inside:avoid">' +
+    '<div style="font-size:12px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:20px;border-bottom:1px solid #dde3ea;padding-bottom:8px">Assinaturas e Ciencia</div>' +
+    '<div class="sig-grid">' +
+      '<div class="sig-box"><div class="sig-line"></div><div style="font-size:12px;font-weight:700">Mario Junior Martins</div><div style="font-size:11px;color:#888">Diretor Escolar</div></div>' +
+      '<div class="sig-box"><div class="sig-line"></div><div style="font-size:12px;font-weight:700">Secretaria Escolar</div><div style="font-size:11px;color:#888">Setor Administrativo</div></div>' +
+      '<div class="sig-box"><div class="sig-line"></div><div style="font-size:12px;font-weight:700">Responsavel pelo Arquivo</div><div style="font-size:11px;color:#888">Data: ___/___/______</div></div>' +
+      '<div class="sig-box"><div class="sig-line"></div><div style="font-size:12px;font-weight:700">Coordenacao Pedagogica</div><div style="font-size:11px;color:#888">Liliam Rangel</div></div>' +
+    '</div></div>';
+
+  var metaBar = '<div style="display:flex;gap:20px;background:#f7f9fb;border:1px solid #dde3ea;border-radius:6px;padding:10px 16px;margin-bottom:20px;font-size:11px;color:#6b7a8d;flex-wrap:wrap">' +
+    '<span>Data de emissao: <strong>' + hoje + '</strong></span>' +
+    '<span>Horario: <strong>' + agora + '</strong></span>' +
+    '<span>Total de registros: <strong>' + regs.length + '</strong></span>' +
+    '</div>';
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>' + titulo + '</title>' +
+    '<style>' + css + '</style></head><body>' +
+    '<div class="timbre">' +
+      '<div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.06em">Estado do Rio de Janeiro &middot; Prefeitura Municipal de Duque de Caxias &middot; Secretaria Municipal de Educacao</div>' +
+      '<div style="font-size:14px;font-weight:700;color:#1a3a5c;margin:2px 0">Escola Municipal Regina Celi da Silva Cerdeira</div>' +
+      '<div style="font-size:11px;color:#555">Centro de Referencia em Educacao Inclusiva &middot; Av. Jornalista Emilio de Menezes, Jardim Primavera &mdash; Duque de Caxias/RJ</div>' +
+    '</div>' +
+    '<div style="background:' + corHeader + ';color:white;padding:14px 18px;border-radius:8px;margin-bottom:8px">' +
+      '<div style="font-size:16px;font-weight:700;margin-bottom:4px">Transporte Escolar Inclusivo &mdash; ' + titulo + '</div>' +
+      '<div style="font-size:11px;opacity:0.85">' + subtitulo + '</div>' +
+    '</div>' +
+    metaBar + linhas + sigBlock +
+    '<div class="rodape">Documento gerado pelo Sistema de Gestao do Transporte Escolar Inclusivo &middot; E.M. Regina Celi da Silva Cerdeira &middot; ' + hoje + '</div>' +
+    '<button class="btn-print no-print" onclick="window.print()">Imprimir / Salvar PDF</button>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); win.focus(); }
+  else { showToast('Permita popups para imprimir.'); }
+}
 
 </script>
 </body>
