@@ -967,7 +967,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 }
 
 // ── MONITOR REGISTRO ─────────────────────────────────────────
-var _monRegCounter = 1;
+var _monRegCounter = 1; // kept for display only
 var _monRegSent = [];
 
 function toggleRegTab() {
@@ -1027,7 +1027,7 @@ function enviarRegistroMonitor() {
   var nat = nat_el ? nat_el.value : 'critico';
 
   var reg = {
-    id: 'RM-' + _monRegCounter++,
+    id: 'RM-' + Date.now() + '-' + Math.random().toString(36).slice(2,6).toUpperCase(),
     monitor: monitor, van: van,
     data: data, hora: hora,
     turno: turno ? turno.value : '',
