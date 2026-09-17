@@ -2382,6 +2382,7 @@ function clearWACoords() {
 function renderAdminStudents(query) {
   query = (query || '').toLowerCase();
   const container = document.getElementById('adminStudentsList');
+  // Always recompute _idx from current students array to avoid stale indices
   const filtered = students.map((s, i) => ({...s, _idx: i}))
     .filter(s => !query ||
       s.name.toLowerCase().includes(query) ||
@@ -2422,8 +2423,8 @@ function adminStudentRow(s) {
       </div>
       <span class="turma-chip">${s.turma}</span>
       <div style="display:flex;gap:6px">
-        <button class="btn-icon" title="Editar" onclick="openStudentModal(${s._idx})">✏️</button>
-        <button class="btn-icon danger" title="Remover" onclick="removeStudent(${s._idx})">🗑️</button>
+        <button class="btn-icon btn-edit-student" data-sidx="${s._idx}" title="Editar">✏️</button>
+        <button class="btn-icon danger btn-del-student" data-sidx="${s._idx}" title="Remover">🗑️</button>
       </div>
     </div>`;
 }
@@ -2437,7 +2438,10 @@ function openStudentModal(idx) {
   document.querySelectorAll('#times_in input, #times_out input').forEach(cb => cb.checked = false);
 
   if (idx !== undefined && idx >= 0) {
+    // Re-resolve index by finding matching student in current array
+    // (guards against stale indices after Supabase reload)
     const s = students[idx];
+    if (!s) { showToast('Aluno não encontrado. Tente atualizar a página.'); return; }
     document.getElementById('modalTitle').textContent = 'Editar Aluno';
     document.getElementById('editIndex').value = idx;
     document.getElementById('f_name').value = s.name;
@@ -2500,11 +2504,14 @@ function saveStudent() {
 
   const wa_lat = document.getElementById('f_wa_lat').value.trim();
   const wa_lng = document.getElementById('f_wa_lng').value.trim();
-  const student = { van, name, turma, address, cid, times, dir: 'ENTOU/SAI',
-    wa_lat: wa_lat || undefined, wa_lng: wa_lng || undefined };
   const idx = parseInt(document.getElementById('editIndex').value);
+  // Preserve supa_id if editing existing student
+  const existingSupa = (idx >= 0 && students[idx]) ? students[idx].supa_id : undefined;
+  const student = { van, name, turma, address, cid, times, dir: 'ENTOU/SAI',
+    wa_lat: wa_lat || undefined, wa_lng: wa_lng || undefined,
+    supa_id: existingSupa };
 
-  if (idx >= 0) {
+  if (idx >= 0 && students[idx]) {
     students[idx] = student;
   } else {
     students.push(student);
@@ -3201,6 +3208,17 @@ function initRegistros() {
       var idx = parseInt(btn.getAttribute('data-idx'));
       imprimirRegistros(tipo, idx);
     }
+    // Event delegation for student edit/delete buttons
+    var editBtn = e.target.closest('.btn-edit-student');
+    if (editBtn) {
+      var sidx = parseInt(editBtn.getAttribute('data-sidx'));
+      openStudentModal(sidx);
+    }
+    var delBtn = e.target.closest('.btn-del-student');
+    if (delBtn) {
+      var sidx = parseInt(delBtn.getAttribute('data-sidx'));
+      removeStudent(sidx);
+    }
   });
   var today = new Date().toISOString().slice(0,10);
   ['rr_data','rs_data','ct_data'].forEach(function(id){
@@ -3272,7 +3290,7 @@ async function syncAlunosToSupa() {
 
 async function loadAlunosFromSupa() {
   var data = await supaFetch('transporte_alunos?select=*&order=van,name');
-  if (data && data.length > 0) {
+  if (Array.isArray(data) && data.length > 0) {
     students.length = 0;
     data.forEach(function(r) {
       students.push({
@@ -3281,6 +3299,14 @@ async function loadAlunosFromSupa() {
         times: r.times||[], dir: r.dir||'ENTOU/SAI',
         wa_lat: r.wa_lat||undefined, wa_lng: r.wa_lng||undefined
       });
+    });
+    // Sort consistently so indices are stable across sessions
+    students.sort(function(a,b) {
+      if (a.van < b.van) return -1;
+      if (a.van > b.van) return 1;
+      if (a.name < b.name) return -1;
+      if (a.name > b.name) return 1;
+      return 0;
     });
     return true;
   }
