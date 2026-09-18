@@ -1116,6 +1116,7 @@
         </div>
 
         <input type="hidden" id="editIndex" value="-1">
+        <input type="hidden" id="editStudentKey" value="">
 
         <div class="modal-grid">
           <div class="modal-field">
@@ -2423,8 +2424,8 @@ function adminStudentRow(s) {
       </div>
       <span class="turma-chip">${s.turma}</span>
       <div style="display:flex;gap:6px">
-        <button class="btn-icon btn-edit-student" data-sidx="${s._idx}" title="Editar">✏️</button>
-        <button class="btn-icon danger btn-del-student" data-sidx="${s._idx}" title="Remover">🗑️</button>
+        <button class="btn-icon btn-edit-student" data-sname="${encodeURIComponent(s.name)}" data-svan="${s.van}" title="Editar">✏️</button>
+        <button class="btn-icon danger btn-del-student" data-sname="${encodeURIComponent(s.name)}" data-svan="${s.van}" title="Remover">🗑️</button>
       </div>
     </div>`;
 }
@@ -2444,6 +2445,7 @@ function openStudentModal(idx) {
     if (!s) { showToast('Aluno não encontrado. Tente atualizar a página.'); return; }
     document.getElementById('modalTitle').textContent = 'Editar Aluno';
     document.getElementById('editIndex').value = idx;
+    document.getElementById('editStudentKey').value = s.name + '||' + s.van;
     document.getElementById('f_name').value = s.name;
     document.getElementById('f_turma').value = s.turma;
     document.getElementById('f_address').value = s.address || '';
@@ -2504,7 +2506,15 @@ function saveStudent() {
 
   const wa_lat = document.getElementById('f_wa_lat').value.trim();
   const wa_lng = document.getElementById('f_wa_lng').value.trim();
-  const idx = parseInt(document.getElementById('editIndex').value);
+  var editIdx = parseInt(document.getElementById('editIndex').value);
+  var editKey = document.getElementById('editStudentKey').value;
+  // Re-resolve pelo nome+van para garantir índice correto
+  var idx = editIdx;
+  if (editKey && editIdx >= 0) {
+    var parts = editKey.split('||');
+    var resolvedIdx = findStudentIdx(encodeURIComponent(parts[0]), parts[1]);
+    if (resolvedIdx >= 0) idx = resolvedIdx;
+  }
   // Preserve supa_id if editing existing student
   const existingSupa = (idx >= 0 && students[idx]) ? students[idx].supa_id : undefined;
   const student = { van, name, turma, address, cid, times, dir: 'ENTOU/SAI',
@@ -3199,6 +3209,20 @@ function renderCotranLog() {
 }
 
 // Init registro panels
+
+// Encontra índice do aluno pelo nome+van (mais confiável que índice numérico)
+function findStudentIdx(name, van) {
+  var decodedName = decodeURIComponent(name);
+  for (var i = 0; i < students.length; i++) {
+    if (students[i].name === decodedName && students[i].van === van) return i;
+  }
+  // Fallback: busca só pelo nome
+  for (var i = 0; i < students.length; i++) {
+    if (students[i].name === decodedName) return i;
+  }
+  return -1;
+}
+
 function initRegistros() {
   // Event delegation for individual print buttons
   document.addEventListener('click', function(e) {
@@ -3211,13 +3235,19 @@ function initRegistros() {
     // Event delegation for student edit/delete buttons
     var editBtn = e.target.closest('.btn-edit-student');
     if (editBtn) {
-      var sidx = parseInt(editBtn.getAttribute('data-sidx'));
-      openStudentModal(sidx);
+      var sname = editBtn.getAttribute('data-sname');
+      var svan  = editBtn.getAttribute('data-svan');
+      var sidx  = findStudentIdx(sname, svan);
+      if (sidx >= 0) openStudentModal(sidx);
+      else showToast('Aluno não encontrado. Atualize a página.');
     }
     var delBtn = e.target.closest('.btn-del-student');
     if (delBtn) {
-      var sidx = parseInt(delBtn.getAttribute('data-sidx'));
-      removeStudent(sidx);
+      var sname = delBtn.getAttribute('data-sname');
+      var svan  = delBtn.getAttribute('data-svan');
+      var sidx  = findStudentIdx(sname, svan);
+      if (sidx >= 0) removeStudent(sidx);
+      else showToast('Aluno não encontrado. Atualize a página.');
     }
   });
   var today = new Date().toISOString().slice(0,10);
